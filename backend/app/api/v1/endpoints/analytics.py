@@ -29,7 +29,11 @@ def get_summary_analytics(
         Expense.date.like(f"{current_month}%")
     ).scalar() or 0.0
 
-    net_savings = total_income - total_expense
+    total_savings_allocated = db.query(func.sum(SavingsGoal.current_amount)).filter(
+        SavingsGoal.user_id == current_user.id
+    ).scalar() or 0.0
+
+    net_savings = total_income - total_expense - total_savings_allocated
     savings_rate = (net_savings / total_income * 100) if total_income > 0 else 0.0
 
     budgets_count = db.query(Budget).filter(

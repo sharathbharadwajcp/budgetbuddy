@@ -100,3 +100,37 @@ def test_cashflow_prediction():
     assert "projected_month_end_balance" in data
     assert "forecast_points" in data
     assert len(data["forecast_points"]) >= 28
+
+def test_savings_deducted_from_income():
+    token = helper_create_and_verify_user("savingsuser@example.com", "Savings User", "password123")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Add Income $500
+    client.post("/api/v1/incomes/", headers=headers, json={"title": "Salary", "amount": 500.0, "category": "Salary"})
+
+    # 2. Add Expense $100
+    client.post("/api/v1/expenses/", headers=headers, json={"title": "Books", "amount": 100.0, "category": "Education"})
+
+    # 3. Create Savings Goal
+    goal_resp = client.post("/api/v1/savings/", headers=headers, json={
+        "title": "Laptop Fund",
+        "target_amount": 1000.0,
+        "current_amount": 0.0,
+        "category": "Tech"
+    })
+    goal_id = goal_resp.json()["id"]
+
+    # 4. Try depositing $500 (Exceeds available $400) -> Should Fail with 400
+    fail_dep = client.post(f"/api/v1/savings/{goal_id}/deposit", headers=headers, json={"amount": 500.0})
+    assert fail_dep.status_code == 400
+    assert "Insufficient available income" in fail_dep.json()["detail"]
+
+    # 5. Deposit $250 (Valid) -> Should Succeed
+    succ_dep = client.post(f"/api/v1/savings/{goal_id}/deposit", headers=headers, json={"amount": 250.0})
+    assert succ_dep.status_code == 200
+    assert succ_dep.json()["current_amount"] == 250.0
+
+    # 6. Verify Summary Analytics net_savings is now $150 ($500 income - $100 expense - $250 savings)
+    sum_resp = client.get("/api/v1/analytics/summary", headers=headers)
+    assert sum_resp.status_code == 200
+    assert sum_resp.json()["net_savings"] == 150.0
