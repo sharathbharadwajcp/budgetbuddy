@@ -1,0 +1,136 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from datetime import datetime
+
+from app.core.database import get_db
+from app.core.deps import get_current_user
+from app.models import User, SavingsGoal, NotificationType
+from app.schemas.schemas import SavingsGoalCreate, SavingsGoalUpdate, SavingsContribution, SavingsGoalOut
+from app.services.notification_service import create_notification
+
+router = APIRouter()
+
+def build_savings_response(goal: SavingsGoal) -> SavingsGoalOut:
+    pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0.0
+    return SavingsGoalOut(
+        id=goal.id,
+        user_id=goal.user_id,
+        title=goal.title,
+        target_amount=goal.target_amount,
+        current_amount=goal.current_amount,
+        target_date=goal.target_date,
+        category=goal.category,
+        is_completed=goal.is_completed or pct >= 100,
+        progress_percentage=round(min(pct, 100.0), 1),
+        created_at=goal.created_at
+    )
+
+@router.get("/", response_model=List[SavingsGoalOut])
+def get_savings_goals(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    goals = db.query(SavingsGoal).filter(SavingsGoal.user_id == current_user.id).order_by(SavingsGoal.created_at.desc()).all()
+    return [build_savings_response(g) for g in goals]
+
+@router.post("/", response_model=SavingsGoalOut, status_code=status.HTTP_201_CREATED)
+def create_savings_goal(
+    goal_in: SavingsGoalCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    goal = SavingsGoal(
+        user_id=current_user.id,
+        title=goal_in.title,
+        target_amount=goal_in.target_amount,
+        current_amount=goal_in.current_amount,
+        target_date=goal_in.target_date,
+        category=goal_in.category,
+        is_completed=goal_in.current_amount >= goal_in.target_amount
+    )
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+    return build_savings_response(goal)
+
+@router.post("/{goal_id}/deposit", response_model=SavingsGoalOut)
+def deposit_savings(
+    goal_id: int,
+    deposit: SavingsContribution,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    goal = db.query(SavingsGoal).filter(SavingsGoal.id == goal_id, SavingsGoal.user_id == current_user.id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Savings goal not found")
+
+    old_pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0.0
+    goal.current_amount += deposit.amount
+    new_pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0.0
+
+    if new_pct >= 100 and not goal.is_completed:
+        goal.is_completed = True
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            title="🎉 Savings Goal Completed!",
+            message=f"Congratulations! You reached 100% of your target amount (${goal.target_amount:,.2f}) for '{goal.title}'!",
+            notification_type=NotificationType.GOAL_MILESTONE.value
+        )
+    elif old_pct < 80 and new_pct >= 80 and new_pct < 100:
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            title="🎯 80% Savings Goal Milestone!",
+            message=f"Awesome work! You are now 80% of the way (${goal.current_amount:,.2f} / ${goal.target_amount:,.2f}) to your '{goal.title}' goal!",
+            notification_type=NotificationType.GOAL_MILESTONE.value
+        )
+    elif old_pct < 50 and new_pct >= 50 and new_pct < 80:
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            title="⚡ 50% Savings Goal Halfway Milestone!",
+            message=f"Halfway there! You have saved 50% (${goal.current_amount:,.2f} / ${goal.target_amount:,.2f}) for '{goal.title}'.",
+            notification_type=NotificationType.GOAL_MILESTONE.value
+        )
+
+    db.commit()
+    db.refresh(goal)
+    return build_savings_response(goal)
+
+@router.put("/{goal_id}", response_model=SavingsGoalOut)
+def update_savings_goal(
+    goal_id: int,
+    goal_in: SavingsGoalUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    goal = db.query(SavingsGoal).filter(SavingsGoal.id == goal_id, SavingsGoal.user_id == current_user.id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Savings goal not found")
+
+    update_data = goal_in.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(goal, field, value)
+
+    if goal.current_amount >= goal.target_amount:
+        goal.is_completed = True
+
+    db.commit()
+    db.refresh(goal)
+    return build_savings_response(goal)
+
+@router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_savings_goal(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    goal = db.query(SavingsGoal).filter(SavingsGoal.id == goal_id, SavingsGoal.user_id == current_user.id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Savings goal not found")
+
+    db.delete(goal)
+    db.commit()
+    return None
