@@ -65,6 +65,8 @@ def create_budget(
 
     if existing:
         existing.amount_allocated = budget_in.amount_allocated
+        if budget_in.description is not None:
+            existing.description = budget_in.description
         db.commit()
         db.refresh(existing)
         return build_budget_response(existing, db)
@@ -73,7 +75,8 @@ def create_budget(
         user_id=current_user.id,
         category=budget_in.category,
         amount_allocated=budget_in.amount_allocated,
-        month=budget_in.month
+        month=budget_in.month,
+        description=budget_in.description
     )
     db.add(budget)
     db.commit()
@@ -93,6 +96,8 @@ def update_budget(
 
     if budget_in.amount_allocated is not None:
         budget.amount_allocated = budget_in.amount_allocated
+    if budget_in.description is not None:
+        budget.description = budget_in.description
 
     db.commit()
     db.refresh(budget)

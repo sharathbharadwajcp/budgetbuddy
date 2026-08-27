@@ -48,6 +48,7 @@ def create_savings_goal(
         current_amount=goal_in.current_amount,
         target_date=goal_in.target_date,
         category=goal_in.category,
+        description=goal_in.description,
         is_completed=goal_in.current_amount >= goal_in.target_amount
     )
     db.add(goal)

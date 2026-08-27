@@ -114,6 +114,7 @@ class Budget(Base):
     category = Column(String, nullable=False)
     amount_allocated = Column(Float, nullable=False)
     month = Column(String, nullable=False) # e.g. '2026-07'
+    description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="budgets")
@@ -128,6 +129,7 @@ class SavingsGoal(Base):
     current_amount = Column(Float, default=0.0)
     target_date = Column(DateTime, nullable=True)
     category = Column(String, default="General")
+    description = Column(Text, nullable=True)
     is_completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
