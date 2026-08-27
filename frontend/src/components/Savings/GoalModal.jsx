@@ -10,7 +10,8 @@ const GoalModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
     target_amount: '',
     current_amount: '0',
     target_date: '',
-    category: 'Tech & Hardware'
+    category: 'Tech & Hardware',
+    description: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +23,8 @@ const GoalModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
         target_amount: initialData.target_amount || '',
         current_amount: initialData.current_amount || '0',
         target_date: initialData.target_date ? initialData.target_date.split('T')[0] : '',
-        category: initialData.category || 'Tech & Hardware'
+        category: initialData.category || 'Tech & Hardware',
+        description: initialData.description || ''
       });
     }
   }, [initialData]);
@@ -40,7 +42,8 @@ const GoalModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
         target_amount: parseFloat(formData.target_amount),
         current_amount: parseFloat(formData.current_amount || 0),
         target_date: formData.target_date ? new Date(formData.target_date).toISOString() : null,
-        category: formData.category
+        category: formData.category,
+        description: formData.description
       };
 
       if (initialData?.id) {
@@ -139,6 +142,20 @@ const GoalModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Goal Description <span className="text-rose-400 font-bold">* (Required)</span>
+            </label>
+            <textarea
+              rows="2"
+              required
+              placeholder="Add goal purpose and milestone details..."
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+            />
           </div>
 
           <div className="pt-3 flex gap-3">

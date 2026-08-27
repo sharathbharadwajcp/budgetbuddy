@@ -112,7 +112,7 @@ class IncomeBase(BaseModel):
     amount: float = Field(gt=0, description="Income amount must be greater than zero")
     category: str
     date: datetime = Field(default_factory=datetime.utcnow)
-    description: Optional[str] = None
+    description: str = Field(min_length=1, description="Description is required")
     bank_account_id: Optional[int] = None
 
 class IncomeCreate(IncomeBase):
@@ -142,7 +142,7 @@ class ExpenseBase(BaseModel):
     category: str
     date: datetime = Field(default_factory=datetime.utcnow)
     payment_method: Optional[str] = "Cash"
-    notes: Optional[str] = None
+    notes: str = Field(min_length=1, description="Notes/description is required")
     bank_account_id: Optional[int] = None
 
 class ExpenseCreate(ExpenseBase):
@@ -171,6 +171,7 @@ class BudgetBase(BaseModel):
     category: str
     amount_allocated: float = Field(gt=0)
     month: str # format: YYYY-MM
+    description: Optional[str] = None
 
 class BudgetCreate(BudgetBase):
     pass
@@ -196,6 +197,7 @@ class SavingsGoalBase(BaseModel):
     current_amount: float = 0.0
     target_date: Optional[datetime] = None
     category: Optional[str] = "General"
+    description: Optional[str] = None
 
 class SavingsGoalCreate(SavingsGoalBase):
     pass

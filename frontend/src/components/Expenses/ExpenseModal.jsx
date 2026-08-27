@@ -190,10 +190,13 @@ const ExpenseModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Notes / Description (Optional)</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Description / Notes <span className="text-rose-400 font-bold">* (Required)</span>
+            </label>
             <textarea
               rows="2"
-              placeholder="Add extra details..."
+              required
+              placeholder="Add expense description & details..."
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"

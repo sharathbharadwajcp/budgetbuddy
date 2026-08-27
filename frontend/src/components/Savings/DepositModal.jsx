@@ -4,6 +4,7 @@ import { X, PlusCircle } from 'lucide-react';
 
 const DepositModal = ({ isOpen, onClose, onSuccess, goal }) => {
   const [amount, setAmount] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,6 +59,20 @@ const DepositModal = ({ isOpen, onClose, onSuccess, goal }) => {
               placeholder="e.g. 50.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Deposit Description <span className="text-rose-400 font-bold">* (Required)</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Monthly deposit, bonus savings"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
             />
           </div>
