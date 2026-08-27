@@ -6,9 +6,7 @@ import {
   Download, 
   FileSpreadsheet, 
   FileType, 
-  Calendar,
-  Sparkles,
-  CheckCircle
+  Calendar
 } from 'lucide-react';
 
 const ReportsPage = () => {
@@ -25,7 +23,7 @@ const ReportsPage = () => {
       const link = document.createElement('a');
       link.href = url;
 
-      const extMap = { csv: 'csv', excel: 'xlsx', pdf: 'pdf' };
+      const extMap = { excel: 'xlsx', pdf: 'pdf' };
       link.setAttribute('download', `budgetbuddy_report_${selectedMonth}.${extMap[type]}`);
       document.body.appendChild(link);
       link.click();
@@ -48,7 +46,7 @@ const ReportsPage = () => {
               <span className="text-xs font-bold uppercase tracking-wider">Reports & Exports</span>
             </div>
             <h2 className="text-2xl font-extrabold text-white">Generate Financial Reports</h2>
-            <p className="text-xs text-slate-400 mt-1">Export transaction history and monthly statements in PDF, Excel, or CSV format.</p>
+            <p className="text-xs text-slate-400 mt-1">Export transaction history and monthly statements in PDF or Excel format.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -61,8 +59,8 @@ const ReportsPage = () => {
           </div>
         </div>
 
-        {/* Export Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Export Cards Grid (PDF and Excel Only) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {/* PDF Report Card */}
           <div className="glass-card glass-card-hover p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-4">
             <div>
@@ -102,27 +100,6 @@ const ReportsPage = () => {
             >
               <Download className="w-4 h-4" />
               {downloading === 'excel' ? 'Generating Excel...' : 'Download Excel File'}
-            </button>
-          </div>
-
-          {/* CSV Export Card */}
-          <div className="glass-card glass-card-hover p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-3">
-                <FileText className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-100">CSV Data Export</h3>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                Raw Comma-Separated Values file containing all transaction details for easy import into custom spreadsheets or accounting tools.
-              </p>
-            </div>
-            <button
-              onClick={() => handleExport('csv')}
-              disabled={!!downloading}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              {downloading === 'csv' ? 'Exporting CSV...' : 'Download CSV File'}
             </button>
           </div>
         </div>
