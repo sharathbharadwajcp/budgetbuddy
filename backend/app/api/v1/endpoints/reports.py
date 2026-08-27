@@ -6,7 +6,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, Expense, Income
+from app.models import User, Expense, Income, UserRole
 from app.services.export_service import generate_csv_export, generate_excel_export, generate_pdf_report
 
 router = APIRouter()
