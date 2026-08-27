@@ -33,7 +33,7 @@ def generate_excel_export(incomes_data: List[Dict[str, Any]], expenses_data: Lis
     output.seek(0)
     return output
 
-def generate_pdf_report(user_name: str, period: str, summary: Dict[str, Any], expenses: List[Dict[str, Any]]) -> io.BytesIO:
+def generate_pdf_report(user_name: str, period: str, summary: Dict[str, Any], expenses: List[Dict[str, Any]], include_charts: bool = True) -> io.BytesIO:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     styles = getSampleStyleSheet()
@@ -79,67 +79,68 @@ def generate_pdf_report(user_name: str, period: str, summary: Dict[str, Any], ex
     elements.append(summary_table)
     elements.append(Spacer(1, 14))
 
-    # --- Add Visual Bar Chart (Income vs Expense) & Pie Chart (Category Breakdown) ---
-    elements.append(Paragraph("<b>Financial Visual Charts</b>", styles['Heading2']))
-    
-    chart_drawing = Drawing(500, 150)
-    
-    # Bar Chart for Income vs Expense
-    bc = VerticalBarChart()
-    bc.x = 20
-    bc.y = 20
-    bc.height = 100
-    bc.width = 140
-    inc_val = summary.get('total_income', 0)
-    exp_val = summary.get('total_expense', 0)
-    bc.data = [[inc_val], [exp_val]]
-    bc.categoryAxis.categoryNames = ['Cashflow']
-    bc.categoryAxis.labels.boxAnchor = 'ne'
-    bc.categoryAxis.labels.dx = 8
-    bc.categoryAxis.labels.dy = -2
-    bc.bars[0].fillColor = colors.HexColor('#10B981') # Green for Income
-    bc.bars[1].fillColor = colors.HexColor('#EF4444') # Red for Expense
-    chart_drawing.add(bc)
-    
-    # Chart Legend / Labels
-    chart_drawing.add(Rect(175, 95, 10, 10, fillColor=colors.HexColor('#10B981'), strokeColor=None))
-    chart_drawing.add(String(190, 96, f"Income: ${inc_val:,.0f}", fontName='Helvetica-Bold', fontSize=9, fillColor=colors.HexColor('#0F172A')))
-    
-    chart_drawing.add(Rect(175, 75, 10, 10, fillColor=colors.HexColor('#EF4444'), strokeColor=None))
-    chart_drawing.add(String(190, 76, f"Expense: ${exp_val:,.0f}", fontName='Helvetica-Bold', fontSize=9, fillColor=colors.HexColor('#0F172A')))
-
-    # Pie Chart for Category Spending Breakdown
-    cat_totals = {}
-    for e in expenses:
-        cat = e.get('category', 'Other')
-        amt = e.get('amount', 0)
-        cat_totals[cat] = cat_totals.get(cat, 0) + amt
-
-    if cat_totals:
-        pc = Pie()
-        pc.x = 310
-        pc.y = 10
-        pc.width = 110
-        pc.height = 110
-        pc.data = list(cat_totals.values())
-        pc.labels = [f"{k}: ${v:,.0f}" for k, v in cat_totals.items()]
-        pc.sideLabels = True
+    # --- Add Visual Bar Chart (Income vs Expense) & Pie Chart (Category Breakdown) for Premium/Admin ---
+    if include_charts:
+        elements.append(Paragraph("<b>Financial Visual Charts (Premium Feature)</b>", styles['Heading2']))
         
-        pie_colors = [
-            colors.HexColor('#6366F1'),
-            colors.HexColor('#06B6D4'),
-            colors.HexColor('#EC4899'),
-            colors.HexColor('#10B981'),
-            colors.HexColor('#F59E0B'),
-            colors.HexColor('#8B5CF6'),
-            colors.HexColor('#64748B')
-        ]
-        for i in range(len(cat_totals)):
-            pc.slices[i].fillColor = pie_colors[i % len(pie_colors)]
-        chart_drawing.add(pc)
-    
-    elements.append(chart_drawing)
-    elements.append(Spacer(1, 14))
+        chart_drawing = Drawing(500, 150)
+        
+        # Bar Chart for Income vs Expense
+        bc = VerticalBarChart()
+        bc.x = 20
+        bc.y = 20
+        bc.height = 100
+        bc.width = 140
+        inc_val = summary.get('total_income', 0)
+        exp_val = summary.get('total_expense', 0)
+        bc.data = [[inc_val], [exp_val]]
+        bc.categoryAxis.categoryNames = ['Cashflow']
+        bc.categoryAxis.labels.boxAnchor = 'ne'
+        bc.categoryAxis.labels.dx = 8
+        bc.categoryAxis.labels.dy = -2
+        bc.bars[0].fillColor = colors.HexColor('#10B981') # Green for Income
+        bc.bars[1].fillColor = colors.HexColor('#EF4444') # Red for Expense
+        chart_drawing.add(bc)
+        
+        # Chart Legend / Labels
+        chart_drawing.add(Rect(175, 95, 10, 10, fillColor=colors.HexColor('#10B981'), strokeColor=None))
+        chart_drawing.add(String(190, 96, f"Income: ${inc_val:,.0f}", fontName='Helvetica-Bold', fontSize=9, fillColor=colors.HexColor('#0F172A')))
+        
+        chart_drawing.add(Rect(175, 75, 10, 10, fillColor=colors.HexColor('#EF4444'), strokeColor=None))
+        chart_drawing.add(String(190, 76, f"Expense: ${exp_val:,.0f}", fontName='Helvetica-Bold', fontSize=9, fillColor=colors.HexColor('#0F172A')))
+
+        # Pie Chart for Category Spending Breakdown
+        cat_totals = {}
+        for e in expenses:
+            cat = e.get('category', 'Other')
+            amt = e.get('amount', 0)
+            cat_totals[cat] = cat_totals.get(cat, 0) + amt
+
+        if cat_totals:
+            pc = Pie()
+            pc.x = 310
+            pc.y = 10
+            pc.width = 110
+            pc.height = 110
+            pc.data = list(cat_totals.values())
+            pc.labels = [f"{k}: ${v:,.0f}" for k, v in cat_totals.items()]
+            pc.sideLabels = True
+            
+            pie_colors = [
+                colors.HexColor('#6366F1'),
+                colors.HexColor('#06B6D4'),
+                colors.HexColor('#EC4899'),
+                colors.HexColor('#10B981'),
+                colors.HexColor('#F59E0B'),
+                colors.HexColor('#8B5CF6'),
+                colors.HexColor('#64748B')
+            ]
+            for i in range(len(cat_totals)):
+                pc.slices[i].fillColor = pie_colors[i % len(pie_colors)]
+            chart_drawing.add(pc)
+        
+        elements.append(chart_drawing)
+        elements.append(Spacer(1, 14))
 
     # Recent Expenses Table
     elements.append(Paragraph("<b>Recent Expenses Breakdown</b>", styles['Heading2']))

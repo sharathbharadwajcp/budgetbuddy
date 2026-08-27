@@ -109,11 +109,14 @@ def export_financial_pdf(
         for e in expenses
     ]
 
+    include_charts = current_user.role in [UserRole.PREMIUM.value, UserRole.ADMIN.value]
+
     pdf_file = generate_pdf_report(
         user_name=current_user.full_name,
         period=target_month,
         summary=summary,
-        expenses=exp_list
+        expenses=exp_list,
+        include_charts=include_charts
     )
 
     return StreamingResponse(
