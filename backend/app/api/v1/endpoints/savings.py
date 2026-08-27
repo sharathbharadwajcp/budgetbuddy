@@ -5,7 +5,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, SavingsGoal, Income, Expense, NotificationType
+from app.models import User, SavingsGoal, Income, Expense, BankAccount, NotificationType
 from app.schemas.schemas import SavingsGoalCreate, SavingsGoalUpdate, SavingsContribution, SavingsGoalOut
 from app.services.notification_service import create_notification
 from sqlalchemy import func
@@ -70,17 +70,28 @@ def deposit_savings(
     if deposit.amount <= 0:
         raise HTTPException(status_code=400, detail="Deposit amount must be greater than $0.00")
 
-    # Calculate available income balance (Total Income - Total Expenses - Total Savings Allocated)
+    # Calculate savings in OTHER goals (excluding the current goal being deposited into)
+    other_savings = db.query(func.sum(SavingsGoal.current_amount)).filter(
+        SavingsGoal.user_id == current_user.id,
+        SavingsGoal.id != goal_id
+    ).scalar() or 0.0
+
     total_income = db.query(func.sum(Income.amount)).filter(Income.user_id == current_user.id).scalar() or 0.0
     total_expense = db.query(func.sum(Expense.amount)).filter(Expense.user_id == current_user.id).scalar() or 0.0
-    total_savings = db.query(func.sum(SavingsGoal.current_amount)).filter(SavingsGoal.user_id == current_user.id).scalar() or 0.0
+    total_bank_balance = db.query(func.sum(BankAccount.current_balance)).filter(BankAccount.user_id == current_user.id).scalar() or 0.0
 
-    available_income = total_income - total_expense - total_savings
+    # Unallocated income balance & liquid bank balance
+    unallocated_income = total_income - total_expense - other_savings - goal.current_amount
+    liquid_bank = total_bank_balance
 
-    if deposit.amount > available_income:
+    # Available funds for deposit
+    available_funds = max(unallocated_income, liquid_bank)
+    has_financial_records = (total_income > 0 or total_expense > 0 or total_bank_balance > 0)
+
+    if has_financial_records and deposit.amount > available_funds:
         raise HTTPException(
             status_code=400, 
-            detail=f"Insufficient available income balance (${available_income:,.2f} remaining). You cannot deposit ${deposit.amount:,.2f} into savings."
+            detail=f"Insufficient available funds (${max(0.0, available_funds):,.2f} remaining). You cannot deposit ${deposit.amount:,.2f} into savings."
         )
 
     old_pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0.0

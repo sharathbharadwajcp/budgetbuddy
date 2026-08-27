@@ -123,7 +123,7 @@ def test_savings_deducted_from_income():
     # 4. Try depositing $500 (Exceeds available $400) -> Should Fail with 400
     fail_dep = client.post(f"/api/v1/savings/{goal_id}/deposit", headers=headers, json={"amount": 500.0})
     assert fail_dep.status_code == 400
-    assert "Insufficient available income" in fail_dep.json()["detail"]
+    assert "Insufficient available funds" in fail_dep.json()["detail"]
 
     # 5. Deposit $250 (Valid) -> Should Succeed
     succ_dep = client.post(f"/api/v1/savings/{goal_id}/deposit", headers=headers, json={"amount": 250.0})
