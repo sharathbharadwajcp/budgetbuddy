@@ -13,7 +13,7 @@ from app.services.email_service import send_budget_alert_email
 
 router = APIRouter()
 
-def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: datetime):
+def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: datetime, new_expense_amount: float = 0.0):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return
@@ -30,20 +30,23 @@ def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: 
     ).first()
 
     if budget and budget.amount_allocated > 0:
-        total_spent = db.query(func.sum(Expense.amount)).filter(
+        new_total_spent = db.query(func.sum(Expense.amount)).filter(
             Expense.user_id == user_id,
             Expense.category == category,
             Expense.date.like(f"{month_str}%")
         ).scalar() or 0.0
 
-        percent = (total_spent / budget.amount_allocated) * 100
+        old_total_spent = max(0.0, new_total_spent - new_expense_amount)
+        old_pct = (old_total_spent / budget.amount_allocated) * 100
+        new_pct = (new_total_spent / budget.amount_allocated) * 100
 
-        if percent >= 100:
+        # 1. Exceeded Budget Milestone (>= 100%)
+        if old_pct < 100 and new_pct >= 100:
             create_notification(
                 db=db,
                 user_id=user_id,
                 title=f"⚠️ Budget Exceeded: {category}",
-                message=f"You have spent ${total_spent:,.2f} on {category}, exceeding your limit of ${budget.amount_allocated:,.2f} for {month_str}!",
+                message=f"You have spent ${new_total_spent:,.2f} on {category}, exceeding your limit of ${budget.amount_allocated:,.2f} for {month_str}!",
                 notification_type=NotificationType.OVERSPENDING.value
             )
             if email_enabled:
@@ -51,18 +54,19 @@ def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: 
                     recipient_email=user.email,
                     user_name=user.full_name,
                     category=category,
-                    total_spent=total_spent,
+                    total_spent=new_total_spent,
                     budget_limit=budget.amount_allocated,
-                    percent_used=percent,
+                    percent_used=new_pct,
                     month_str=month_str,
                     is_exceeded=True
                 )
-        elif percent >= alert_threshold:
+        # 2. Warning Threshold Milestone (e.g. 80%)
+        elif old_pct < alert_threshold and new_pct >= alert_threshold and new_pct < 100:
             create_notification(
                 db=db,
                 user_id=user_id,
                 title=f"⚡ Budget Warning: {category}",
-                message=f"You have used {percent:.1f}% (${total_spent:,.2f} / ${budget.amount_allocated:,.2f}) of your {category} budget for {month_str}.",
+                message=f"You have used {new_pct:.1f}% (${new_total_spent:,.2f} / ${budget.amount_allocated:,.2f}) of your {category} budget for {month_str}.",
                 notification_type=NotificationType.BUDGET_ALERT.value
             )
             if email_enabled:
@@ -70,9 +74,29 @@ def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: 
                     recipient_email=user.email,
                     user_name=user.full_name,
                     category=category,
-                    total_spent=total_spent,
+                    total_spent=new_total_spent,
                     budget_limit=budget.amount_allocated,
-                    percent_used=percent,
+                    percent_used=new_pct,
+                    month_str=month_str,
+                    is_exceeded=False
+                )
+        # 3. Halfway Milestone (>= 50%)
+        elif old_pct < 50 and new_pct >= 50 and new_pct < alert_threshold:
+            create_notification(
+                db=db,
+                user_id=user_id,
+                title=f"⚡ 50% Budget Milestone: {category}",
+                message=f"You have used {new_pct:.1f}% (${new_total_spent:,.2f} / ${budget.amount_allocated:,.2f}) of your {category} budget for {month_str}.",
+                notification_type=NotificationType.BUDGET_ALERT.value
+            )
+            if email_enabled:
+                send_budget_alert_email(
+                    recipient_email=user.email,
+                    user_name=user.full_name,
+                    category=category,
+                    total_spent=new_total_spent,
+                    budget_limit=budget.amount_allocated,
+                    percent_used=new_pct,
                     month_str=month_str,
                     is_exceeded=False
                 )
@@ -131,7 +155,7 @@ def create_expense(
     db.refresh(expense)
 
     # Trigger budget check & notifications
-    check_budget_alerts(db, current_user.id, expense.category, expense.date)
+    check_budget_alerts(db, current_user.id, expense.category, expense.date, new_expense_amount=expense.amount)
 
     return expense
 
@@ -153,7 +177,7 @@ def update_expense(
     db.commit()
     db.refresh(expense)
 
-    check_budget_alerts(db, current_user.id, expense.category, expense.date)
+    check_budget_alerts(db, current_user.id, expense.category, expense.date, new_expense_amount=expense.amount)
 
     return expense
 
