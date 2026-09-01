@@ -53,6 +53,12 @@ const ProfilePage = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    if (user?.full_name) {
+      setFullName(user.full_name);
+    }
+  }, [user]);
+
   const handleRequestPremium = async () => {
     setRequestingPremium(true);
     setMessage('');
@@ -69,6 +75,16 @@ const ProfilePage = () => {
   };
 
   const isPending = user?.has_pending_premium_request || premiumRequested;
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
