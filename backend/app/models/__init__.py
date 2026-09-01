@@ -44,6 +44,7 @@ class User(Base):
     role = Column(String, default=UserRole.STUDENT.value, nullable=False)
     is_active = Column(Boolean, default=True)
     is_email_verified = Column(Boolean, default=False)
+    has_pending_premium_request = Column(Boolean, default=False)
     verification_code = Column(String, nullable=True)
     verification_code_expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

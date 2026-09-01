@@ -51,10 +51,15 @@ def request_premium_upgrade(
             detail=f"Your account is already a {current_user.role.upper()} account!"
         )
 
-    # 1. Find all active Admin users
+    # 1. Mark request pending on user account
+    current_user.has_pending_premium_request = True
+    db.commit()
+    db.refresh(current_user)
+
+    # 2. Find all active Admin users
     admin_users = db.query(User).filter(User.role == UserRole.ADMIN.value, User.is_active == True).all()
 
-    # 2. Trigger in-app notification & email for each admin
+    # 3. Trigger in-app notification & email for each admin
     for admin in admin_users:
         create_notification(
             db=db,
@@ -69,7 +74,7 @@ def request_premium_upgrade(
             student_email=current_user.email
         )
 
-    # 3. Log system audit action
+    # 4. Log system audit action
     log_system_action(
         db=db,
         user_id=current_user.id,

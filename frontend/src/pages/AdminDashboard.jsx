@@ -132,7 +132,15 @@ const AdminDashboard = () => {
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-900/40 transition">
                     <td className="px-6 py-4">
-                      <p className="font-bold text-slate-200">{u.full_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-slate-200">{u.full_name}</p>
+                        {u.has_pending_premium_request && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-extrabold flex items-center gap-1 animate-pulse">
+                            <Sparkles className="w-3 h-3 text-amber-400" />
+                            Upgrade Requested
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px] text-slate-400">{u.email}</p>
                     </td>
                     <td className="px-6 py-4">
@@ -162,7 +170,7 @@ const AdminDashboard = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        {u.role === 'student' && (
+                        {u.role === 'student' && u.has_pending_premium_request && (
                           <button
                             onClick={() => handleRoleChange(u.id, 'premium')}
                             className="px-3 py-1 rounded-lg text-[11px] font-extrabold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 flex items-center gap-1 transition"

@@ -59,6 +59,7 @@ const ProfilePage = () => {
     try {
       const res = await api.post('/users/request-premium');
       setPremiumRequested(true);
+      if (user) setUser({ ...user, has_pending_premium_request: true });
       setMessage(res.data.message || 'Upgrade request submitted! In-app & Email notifications sent to admin.');
     } catch (err) {
       setMessage(err.response?.data?.detail || 'Failed to submit premium request.');
@@ -67,39 +68,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage('');
-
-    try {
-      if (fullName !== user?.full_name) {
-        const uRes = await api.put('/users/me', { full_name: fullName });
-        setUser(uRes.data);
-      }
-      const pRes = await api.put('/profiles/me', formData);
-      setProfile(pRes.data);
-      setMessage('Profile and preferences updated successfully!');
-    } catch (err) {
-      setMessage('Failed to update profile settings.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    setDeleting(true);
-    try {
-      await api.delete('/auth/me');
-      logout();
-      navigate('/register');
-    } catch (err) {
-      alert('Failed to delete account. Please try again.');
-    } finally {
-      setDeleting(false);
-      setShowDeleteModal(false);
-    }
-  };
+  const isPending = user?.has_pending_premium_request || premiumRequested;
 
   return (
     <Layout>
@@ -126,7 +95,9 @@ const ProfilePage = () => {
                 <div>
                   <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
                     Upgrade to BudgetBuddy Premium
-                    <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold px-2 py-0.5 rounded-full uppercase">Admin Approval</span>
+                    <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold px-2 py-0.5 rounded-full uppercase">
+                      {isPending ? 'Pending Admin Review' : 'Admin Approval Required'}
+                    </span>
                   </h3>
                   <p className="text-xs text-slate-300 mt-0.5">
                     Unlock 12-month trend charts, AI cashflow predictions, custom date range filters, and PDF/Excel visual chart exports.
@@ -136,19 +107,19 @@ const ProfilePage = () => {
 
               <button
                 type="button"
-                disabled={requestingPremium || premiumRequested}
+                disabled={requestingPremium || isPending}
                 onClick={handleRequestPremium}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition shrink-0 disabled:opacity-50"
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition shrink-0 disabled:opacity-60"
               >
                 <Sparkles className="w-4 h-4" />
-                {premiumRequested ? 'Request Submitted ✓' : requestingPremium ? 'Submitting...' : 'Request Premium Upgrade'}
+                {isPending ? 'Request Pending Admin Approval ✓' : requestingPremium ? 'Submitting...' : 'Request Premium Upgrade'}
               </button>
             </div>
 
-            {premiumRequested && (
+            {isPending && (
               <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                Request sent to Administrator! You will be notified in-app & via email upon Admin approval.
+                Upgrade request pending administrator review. You will receive an in-app & email notification once approved!
               </div>
             )}
           </div>

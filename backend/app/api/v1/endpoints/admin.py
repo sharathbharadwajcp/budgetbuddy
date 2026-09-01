@@ -77,10 +77,10 @@ def update_user_role(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.role = role
-    db.commit()
-    db.refresh(user)
 
-    if role == UserRole.PREMIUM.value:
+    # Only trigger approval notification & email if student explicitly submitted a premium upgrade request!
+    if role == UserRole.PREMIUM.value and user.has_pending_premium_request:
+        user.has_pending_premium_request = False
         create_notification(
             db=db,
             user_id=user.id,
@@ -89,6 +89,11 @@ def update_user_role(
             notification_type=NotificationType.SYSTEM.value
         )
         send_premium_approval_email_to_user(recipient_email=user.email, student_name=user.full_name)
+    elif role != UserRole.PREMIUM.value:
+        user.has_pending_premium_request = False
+
+    db.commit()
+    db.refresh(user)
 
     log_system_action(db=db, user_id=current_user.id, action="Admin Changed User Role", details=f"User {user.email} -> {role}")
     return user

@@ -31,6 +31,7 @@ class UserOut(BaseModel):
     role: str
     is_active: bool
     is_email_verified: bool = False
+    has_pending_premium_request: bool = False
     created_at: datetime
 
     class Config:
