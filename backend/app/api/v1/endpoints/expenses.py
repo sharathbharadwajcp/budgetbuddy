@@ -6,13 +6,22 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, Expense, Budget, BankAccount, NotificationType
+from app.models import User, Expense, Budget, BankAccount, Profile, NotificationType
 from app.schemas.schemas import ExpenseCreate, ExpenseUpdate, ExpenseOut
 from app.services.notification_service import create_notification
+from app.services.email_service import send_budget_alert_email
 
 router = APIRouter()
 
 def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: datetime):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return
+
+    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+    alert_threshold = profile.overspending_alert_threshold if (profile and profile.overspending_alert_threshold) else 80.0
+    email_enabled = profile.email_notifications_enabled if (profile and profile.email_notifications_enabled is not None) else True
+
     month_str = expense_date.strftime("%Y-%m")
     budget = db.query(Budget).filter(
         Budget.user_id == user_id,
@@ -37,7 +46,18 @@ def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: 
                 message=f"You have spent ${total_spent:,.2f} on {category}, exceeding your limit of ${budget.amount_allocated:,.2f} for {month_str}!",
                 notification_type=NotificationType.OVERSPENDING.value
             )
-        elif percent >= 80:
+            if email_enabled:
+                send_budget_alert_email(
+                    recipient_email=user.email,
+                    user_name=user.full_name,
+                    category=category,
+                    total_spent=total_spent,
+                    budget_limit=budget.amount_allocated,
+                    percent_used=percent,
+                    month_str=month_str,
+                    is_exceeded=True
+                )
+        elif percent >= alert_threshold:
             create_notification(
                 db=db,
                 user_id=user_id,
@@ -45,6 +65,17 @@ def check_budget_alerts(db: Session, user_id: int, category: str, expense_date: 
                 message=f"You have used {percent:.1f}% (${total_spent:,.2f} / ${budget.amount_allocated:,.2f}) of your {category} budget for {month_str}.",
                 notification_type=NotificationType.BUDGET_ALERT.value
             )
+            if email_enabled:
+                send_budget_alert_email(
+                    recipient_email=user.email,
+                    user_name=user.full_name,
+                    category=category,
+                    total_spent=total_spent,
+                    budget_limit=budget.amount_allocated,
+                    percent_used=percent,
+                    month_str=month_str,
+                    is_exceeded=False
+                )
 
 @router.get("/", response_model=List[ExpenseOut])
 def get_expenses(
