@@ -19,58 +19,61 @@ def send_verification_email(recipient_email: str, code: str) -> bool:
 
     if smtp_host and smtp_user and smtp_password:
         try:
+            domain = smtp_user.split('@')[-1] if '@' in smtp_user else 'budgetbuddy.com'
             msg = MIMEMultipart('alternative')
-            msg['From'] = f"BudgetBuddy Support <{smtp_user}>"
+            msg['From'] = f"BudgetBuddy <{smtp_user}>"
             msg['To'] = recipient_email
             msg['Reply-To'] = smtp_user
-            msg['Subject'] = f"{code} is your BudgetBuddy verification code"
-            msg['Auto-Submitted'] = 'auto-generated'
-            msg['X-Mailer'] = 'BudgetBuddy Notification System'
+            msg['Subject'] = f"BudgetBuddy Security Verification Code: {code}"
+            msg['Message-ID'] = f"<{code}.{int(datetime.utcnow().timestamp())}@{domain}>"
+            msg['X-Priority'] = '1'
+            msg['X-MSMail-Priority'] = 'High'
+            msg['X-Auto-Response-Suppress'] = 'All'
 
-            # Plain-text version (Prevents Spam Filter flags)
-            text_body = f"""
-Hello,
+            # Plain-text version
+            text_body = f"""Hello,
 
-Welcome to BudgetBuddy!
+Thank you for signing up for BudgetBuddy!
 
-Your 6-digit email verification code is: {code}
+Your security verification code is: {code}
 
-This code will expire in 15 minutes. If you did not sign up for a BudgetBuddy account, please ignore this email.
+Please enter this 6-digit code in BudgetBuddy to verify your email address. This code will expire in 15 minutes.
+
+If you did not request this verification code, no action is needed.
 
 Best regards,
-The BudgetBuddy Team
-            """
+BudgetBuddy Team
+"""
 
-            # Clean HTML version
-            html_body = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-            </head>
-            <body style="font-family: Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #0f172a;">
-                <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                    <div style="text-align: center; margin-bottom: 24px;">
-                        <h2 style="color: #4f46e5; margin: 0; font-size: 24px; font-weight: 800;">BudgetBuddy</h2>
-                        <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Smart Personal Finance & Expense Manager</p>
-                    </div>
-                    
-                    <p style="font-size: 14px; color: #334155; line-height: 1.5;">Hello,</p>
-                    <p style="font-size: 14px; color: #334155; line-height: 1.5;">Thank you for registering with BudgetBuddy. Please use the verification code below to complete your account setup:</p>
-                    
-                    <div style="text-align: center; background-color: #f1f5f9; padding: 20px; border-radius: 12px; margin: 24px 0; border: 1px border-slate-200;">
-                        <span style="font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #4f46e5;">{code}</span>
-                    </div>
+            # Clean, high-deliverability HTML version
+            html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BudgetBuddy Verification</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 30px 10px; color: #1e293b;">
+    <div style="max-width: 520px; margin: 0 auto; background-color: #ffffff; padding: 32px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #4338ca; font-size: 24px; font-weight: 700; margin: 0; tracking: -0.5px;">BudgetBuddy</h1>
+            <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Email Verification</p>
+        </div>
+        
+        <p style="font-size: 14px; color: #334155; line-height: 1.6;">Hello,</p>
+        <p style="font-size: 14px; color: #334155; line-height: 1.6;">Thank you for registering with BudgetBuddy. Please enter the security verification code below to activate your account:</p>
+        
+        <div style="text-align: center; background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 24px 0; border: 1px solid #cbd5e1;">
+            <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4338ca;">{code}</span>
+        </div>
 
-                    <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">This code will expire in 15 minutes for security purposes.</p>
-                    
-                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-                    
-                    <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">If you did not request this code, please ignore this email.</p>
-                </div>
-            </body>
-            </html>
-            """
+        <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">This code is valid for 15 minutes.</p>
+        
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        
+        <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">If you did not request this verification email, please safely disregard it.</p>
+    </div>
+</body>
+</html>"""
 
             msg.attach(MIMEText(text_body, 'plain'))
             msg.attach(MIMEText(html_body, 'html'))
@@ -113,7 +116,7 @@ The BudgetBuddy Team
     if smtp_host and smtp_user and smtp_password:
         try:
             msg = MIMEMultipart('alternative')
-            msg['From'] = f"BudgetBuddy System <{smtp_user}>"
+            msg['From'] = f"BudgetBuddy <{smtp_user}>"
             msg['To'] = admin_email
             msg['Subject'] = subject
             msg.attach(MIMEText(text_body, 'plain'))
@@ -140,9 +143,8 @@ def send_premium_approval_email_to_user(recipient_email: str, student_name: str)
     smtp_user = os.getenv("SMTP_USER", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
 
-    subject = "🎉 Your BudgetBuddy Premium Upgrade Has Been Approved!"
-    text_body = f"""
-Hello {student_name},
+    subject = "BudgetBuddy Premium Account Approved"
+    text_body = f"""Hello {student_name},
 
 Great news! Your request to upgrade your BudgetBuddy account to Premium has been approved by the administrator.
 
@@ -156,13 +158,13 @@ Log in now to experience your new Premium features:
 http://localhost:5173/login
 
 Best regards,
-The BudgetBuddy Team
-    """
+BudgetBuddy Team
+"""
 
     if smtp_host and smtp_user and smtp_password:
         try:
             msg = MIMEMultipart('alternative')
-            msg['From'] = f"BudgetBuddy Support <{smtp_user}>"
+            msg['From'] = f"BudgetBuddy <{smtp_user}>"
             msg['To'] = recipient_email
             msg['Subject'] = subject
             msg.attach(MIMEText(text_body, 'plain'))
