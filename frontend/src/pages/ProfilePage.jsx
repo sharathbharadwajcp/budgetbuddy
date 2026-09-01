@@ -6,7 +6,7 @@ import { User, Settings, Save, Bell, Shield, Wallet, Trash2, AlertTriangle, X, S
 import { useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
-  const { user, setUser, logout } = useAuth();
+  const { user, setUser, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -33,15 +33,17 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       const res = await api.get('/profiles/me');
-      setProfile(res.data);
-      setFormData({
-        phone: res.data.phone || '',
-        bio: res.data.bio || '',
-        monthly_income_target: res.data.monthly_income_target || 1000,
-        preferred_currency: res.data.preferred_currency || 'USD',
-        email_notifications_enabled: res.data.email_notifications_enabled ?? true,
-        overspending_alert_threshold: res.data.overspending_alert_threshold || 80
-      });
+      if (res && res.data) {
+        setProfile(res.data);
+        setFormData({
+          phone: res.data.phone || '',
+          bio: res.data.bio || '',
+          monthly_income_target: res.data.monthly_income_target || 1000,
+          preferred_currency: res.data.preferred_currency || 'USD',
+          email_notifications_enabled: res.data.email_notifications_enabled ?? true,
+          overspending_alert_threshold: res.data.overspending_alert_threshold || 80
+        });
+      }
     } catch (err) {
       console.error('Failed to load profile', err);
     } finally {
@@ -66,7 +68,7 @@ const ProfilePage = () => {
       const res = await api.post('/users/request-premium');
       setPremiumRequested(true);
       if (user) setUser({ ...user, has_pending_premium_request: true });
-      setMessage(res.data.message || 'Upgrade request submitted! In-app & Email notifications sent to admin.');
+      setMessage(res.data?.message || 'Upgrade request submitted! In-app & Email notifications sent to admin.');
     } catch (err) {
       setMessage(err.response?.data?.detail || 'Failed to submit premium request.');
     } finally {
@@ -74,9 +76,43 @@ const ProfilePage = () => {
     }
   };
 
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage('');
+
+    try {
+      if (fullName && fullName !== user?.full_name) {
+        const uRes = await api.put('/users/me', { full_name: fullName });
+        if (uRes.data) setUser(uRes.data);
+      }
+      const pRes = await api.put('/profiles/me', formData);
+      if (pRes.data) setProfile(pRes.data);
+      setMessage('Profile and preferences updated successfully!');
+    } catch (err) {
+      setMessage('Failed to update profile settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await api.delete('/auth/me');
+      logout();
+      navigate('/register');
+    } catch (err) {
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const isPending = user?.has_pending_premium_request || premiumRequested;
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -86,17 +122,32 @@ const ProfilePage = () => {
     );
   }
 
+  if (!user) {
+    return (
+      <Layout>
+        <div className="p-8 text-center glass-panel rounded-3xl max-w-md mx-auto my-12 border border-slate-800 space-y-4">
+          <p className="text-slate-300 font-bold">Please log in to view your profile settings.</p>
+          <button onClick={() => navigate('/login')} className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-500/20">
+            Go to Login
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const userInitial = (user?.full_name || user?.email || 'U').charAt(0).toUpperCase();
+
   return (
     <Layout>
       <div className="space-y-6 max-w-4xl">
         {/* Header */}
         <div className="flex items-center gap-3 glass-panel p-6 rounded-3xl border border-[#1E293B]">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-extrabold text-slate-950 text-lg shadow-lg shadow-cyan-500/20">
-            {user?.full_name?.charAt(0) || 'U'}
+            {userInitial}
           </div>
           <div>
-            <h2 className="text-2xl font-extrabold text-white">{user?.full_name}</h2>
-            <p className="text-xs text-slate-400">{user?.email} • <span className="uppercase text-cyan-400 font-extrabold">{user?.role}</span> Account</p>
+            <h2 className="text-2xl font-extrabold text-white">{user?.full_name || user?.email}</h2>
+            <p className="text-xs text-slate-400">{user?.email} • <span className="uppercase text-cyan-400 font-extrabold">{user?.role || 'STUDENT'}</span> Account</p>
           </div>
         </div>
 
@@ -106,7 +157,7 @@ const ProfilePage = () => {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
-                  <Star className="w-6 h-6 animate-spin-slow" />
+                  <Star className="w-6 h-6 animate-pulse text-amber-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
@@ -204,7 +255,7 @@ const ProfilePage = () => {
                   type="number"
                   step="50"
                   value={formData.monthly_income_target}
-                  onChange={(e) => setFormData({ ...formData, monthly_income_target: parseFloat(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, monthly_income_target: parseFloat(e.target.value) || 0 })}
                   className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -239,7 +290,7 @@ const ProfilePage = () => {
                   min="50"
                   max="100"
                   value={formData.overspending_alert_threshold}
-                  onChange={(e) => setFormData({ ...formData, overspending_alert_threshold: parseFloat(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, overspending_alert_threshold: parseFloat(e.target.value) || 80 })}
                   className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 focus:outline-none focus:border-purple-500"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">Receive warning alert when budget utilization reaches this %.</p>
@@ -287,6 +338,7 @@ const ProfilePage = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => {
                 setDeleteConfirmationText('');
                 setShowDeleteModal(true);
@@ -304,6 +356,7 @@ const ProfilePage = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
             <div className="w-full max-w-md bg-[#0D1630] p-6 rounded-3xl border border-rose-500/40 shadow-2xl relative">
               <button
+                type="button"
                 onClick={() => setShowDeleteModal(false)}
                 className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
               >
