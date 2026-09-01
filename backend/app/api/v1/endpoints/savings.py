@@ -5,9 +5,10 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, SavingsGoal, Income, Expense, BankAccount, NotificationType
+from app.models import User, SavingsGoal, Income, Expense, BankAccount, Profile, NotificationType
 from app.schemas.schemas import SavingsGoalCreate, SavingsGoalUpdate, SavingsContribution, SavingsGoalOut
 from app.services.notification_service import create_notification
+from app.services.email_service import send_savings_milestone_email
 from sqlalchemy import func
 
 router = APIRouter()
@@ -98,6 +99,9 @@ def deposit_savings(
     goal.current_amount += deposit.amount
     new_pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0.0
 
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    email_enabled = profile.email_notifications_enabled if (profile and profile.email_notifications_enabled is not None) else True
+
     if new_pct >= 100 and not goal.is_completed:
         goal.is_completed = True
         create_notification(
@@ -107,6 +111,16 @@ def deposit_savings(
             message=f"Congratulations! You reached 100% of your target amount (${goal.target_amount:,.2f}) for '{goal.title}'!",
             notification_type=NotificationType.GOAL_MILESTONE.value
         )
+        if email_enabled:
+            send_savings_milestone_email(
+                recipient_email=current_user.email,
+                user_name=current_user.full_name,
+                goal_title=goal.title,
+                current_amount=goal.current_amount,
+                target_amount=goal.target_amount,
+                percent_reached=new_pct,
+                is_completed=True
+            )
     elif old_pct < 80 and new_pct >= 80 and new_pct < 100:
         create_notification(
             db=db,
@@ -115,6 +129,16 @@ def deposit_savings(
             message=f"Awesome work! You are now 80% of the way (${goal.current_amount:,.2f} / ${goal.target_amount:,.2f}) to your '{goal.title}' goal!",
             notification_type=NotificationType.GOAL_MILESTONE.value
         )
+        if email_enabled:
+            send_savings_milestone_email(
+                recipient_email=current_user.email,
+                user_name=current_user.full_name,
+                goal_title=goal.title,
+                current_amount=goal.current_amount,
+                target_amount=goal.target_amount,
+                percent_reached=new_pct,
+                is_completed=False
+            )
     elif old_pct < 50 and new_pct >= 50 and new_pct < 80:
         create_notification(
             db=db,
@@ -123,6 +147,16 @@ def deposit_savings(
             message=f"Halfway there! You have saved 50% (${goal.current_amount:,.2f} / ${goal.target_amount:,.2f}) for '{goal.title}'.",
             notification_type=NotificationType.GOAL_MILESTONE.value
         )
+        if email_enabled:
+            send_savings_milestone_email(
+                recipient_email=current_user.email,
+                user_name=current_user.full_name,
+                goal_title=goal.title,
+                current_amount=goal.current_amount,
+                target_amount=goal.target_amount,
+                percent_reached=new_pct,
+                is_completed=False
+            )
 
     db.commit()
     db.refresh(goal)

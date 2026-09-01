@@ -246,3 +246,85 @@ BudgetBuddy Team
     print(f" [DEV EMAIL SIMULATOR] {subject}")
     print(f"=======================================================\n")
     return True
+
+def send_savings_milestone_email(
+    recipient_email: str,
+    user_name: str,
+    goal_title: str,
+    current_amount: float,
+    target_amount: float,
+    percent_reached: float,
+    is_completed: bool
+) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+
+    if is_completed:
+        subject = f"🎉 Goal Achieved! 100% Target Met for '{goal_title}'"
+        heading = f"Savings Goal Completed: {goal_title}"
+        status_color = "#16a34a"
+        message_intro = f"Congratulations {user_name}! You have reached 100% of your savings goal for <strong>'{goal_title}'</strong> by accumulating <strong>${current_amount:,.2f}</strong>!"
+    else:
+        subject = f"🎯 Milestone Reached: {percent_reached:.0f}% Saved for '{goal_title}'"
+        heading = f"Savings Goal Milestone ({percent_reached:.0f}%): {goal_title}"
+        status_color = "#2563eb"
+        message_intro = f"Great progress {user_name}! You have saved <strong>{percent_reached:.1f}%</strong> (${current_amount:,.2f} of ${target_amount:,.2f}) for your <strong>'{goal_title}'</strong> goal."
+
+    text_body = f"""Hello {user_name},
+
+{heading}
+
+{message_intro.replace('<strong>','').replace('</strong>','')}
+
+Keep up the great financial habits with BudgetBuddy!
+
+Best regards,
+BudgetBuddy Team
+"""
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #0f172a;">
+    <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <h2 style="color: {status_color}; margin-top: 0;">{heading}</h2>
+        <p style="font-size: 14px; color: #334155;">Hello {user_name},</p>
+        <p style="font-size: 14px; color: #334155; line-height: 1.6;">{message_intro}</p>
+        
+        <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Goal Title:</strong> {goal_title}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Current Balance:</strong> ${current_amount:,.2f}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #475569;"><strong>Target Amount:</strong> ${target_amount:,.2f}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: {status_color}; font-weight: bold;"><strong>Progress:</strong> {percent_reached:.1f}%</p>
+        </div>
+
+        <p style="font-size: 12px; color: #64748b;">Log in to BudgetBuddy to track your goals or deposit funds.</p>
+    </div>
+</body>
+</html>"""
+
+    if smtp_host and smtp_user and smtp_password:
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['From'] = smtp_user
+            msg['To'] = recipient_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(text_body, 'plain'))
+            msg.attach(MIMEText(html_body, 'html'))
+
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+            server.quit()
+            print(f"[Email Sent] Savings milestone email sent to {recipient_email}")
+            return True
+        except Exception as e:
+            print(f"[Email Error] Failed to send savings milestone email: {e}")
+
+    print(f"\n=======================================================")
+    print(f" [DEV EMAIL SIMULATOR] Savings Milestone Email Recipient: {recipient_email}")
+    print(f" [DEV EMAIL SIMULATOR] {subject}")
+    print(f"=======================================================\n")
+    return True
