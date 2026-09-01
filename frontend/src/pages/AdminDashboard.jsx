@@ -8,7 +8,8 @@ import {
   Activity, 
   CheckCircle, 
   XCircle,
-  UserCheck
+  UserCheck,
+  Sparkles
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -160,16 +161,28 @@ const AdminDashboard = () => {
                       {new Date(u.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleStatusToggle(u.id, u.is_active)}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition ${
-                          u.is_active
-                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                        }`}
-                      >
-                        {u.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        {u.role === 'student' && (
+                          <button
+                            onClick={() => handleRoleChange(u.id, 'premium')}
+                            className="px-3 py-1 rounded-lg text-[11px] font-extrabold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 flex items-center gap-1 transition"
+                            title="Approve Premium Request & Email User"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Approve Premium
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleStatusToggle(u.id, u.is_active)}
+                          className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition ${
+                            u.is_active
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                          }`}
+                        >
+                          {u.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

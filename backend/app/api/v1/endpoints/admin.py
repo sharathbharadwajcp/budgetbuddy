@@ -5,9 +5,10 @@ from typing import List, Dict, Any
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_roles
-from app.models import User, UserRole, Expense, Income, Budget, SavingsGoal, SystemLog
+from app.models import User, UserRole, Expense, Income, Budget, SavingsGoal, SystemLog, NotificationType
 from app.schemas.schemas import UserOut, SystemLogOut, UserUpdate
-from app.services.notification_service import log_system_action
+from app.services.notification_service import log_system_action, create_notification
+from app.services.email_service import send_premium_approval_email_to_user
 
 router = APIRouter()
 
@@ -78,6 +79,16 @@ def update_user_role(
     user.role = role
     db.commit()
     db.refresh(user)
+
+    if role == UserRole.PREMIUM.value:
+        create_notification(
+            db=db,
+            user_id=user.id,
+            title="🎉 Premium Account Approved!",
+            message="Congratulations! Your request for Premium access has been approved by the administrator. Enjoy 12-month trend analytics, AI cashflow predictions, and PDF/Excel chart exports!",
+            notification_type=NotificationType.SYSTEM.value
+        )
+        send_premium_approval_email_to_user(recipient_email=user.email, student_name=user.full_name)
 
     log_system_action(db=db, user_id=current_user.id, action="Admin Changed User Role", details=f"User {user.email} -> {role}")
     return user

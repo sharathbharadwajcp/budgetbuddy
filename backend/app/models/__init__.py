@@ -31,6 +31,7 @@ class NotificationType(str, enum.Enum):
     SAVINGS_REMINDER = "savings_reminder"
     GOAL_MILESTONE = "goal_milestone"
     MONTHLY_REPORT = "monthly_report"
+    PREMIUM_REQUEST = "premium_request"
     SYSTEM = "system"
 
 class User(Base):

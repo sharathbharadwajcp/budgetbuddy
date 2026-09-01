@@ -91,3 +91,94 @@ The BudgetBuddy Team
     print(f" [DEV EMAIL SIMULATOR] Gmail Verification Code: {code}")
     print(f"=======================================================\n")
     return True
+
+def send_premium_request_email_to_admin(admin_email: str, student_name: str, student_email: str) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+
+    subject = f"⭐ Premium Upgrade Request from {student_name}"
+    text_body = f"""
+Hello Administrator,
+
+Student user {student_name} ({student_email}) has submitted a request to upgrade their BudgetBuddy account to Premium.
+
+Please review this request in your Admin Dashboard under User Management.
+
+Best regards,
+The BudgetBuddy Team
+    """
+
+    if smtp_host and smtp_user and smtp_password:
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['From'] = f"BudgetBuddy System <{smtp_user}>"
+            msg['To'] = admin_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(text_body, 'plain'))
+
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+            server.quit()
+            print(f"[Email Sent] Premium upgrade request notification emailed to admin {admin_email}")
+            return True
+        except Exception as e:
+            print(f"[Email Error] Failed to email admin via SMTP: {e}")
+
+    print(f"\n=======================================================")
+    print(f" [DEV EMAIL SIMULATOR] Admin Recipient: {admin_email}")
+    print(f" [DEV EMAIL SIMULATOR] Upgrade Request from: {student_name} ({student_email})")
+    print(f"=======================================================\n")
+    return True
+
+def send_premium_approval_email_to_user(recipient_email: str, student_name: str) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+
+    subject = "🎉 Your BudgetBuddy Premium Upgrade Has Been Approved!"
+    text_body = f"""
+Hello {student_name},
+
+Great news! Your request to upgrade your BudgetBuddy account to Premium has been approved by the administrator.
+
+You now have full access to:
+- 12-Month Historical Trend Charts & Multi-Year Cashflow Analytics
+- 30-Day AI Predictive Cashflow & Daily Burn Rate Forecasts
+- Custom Date Range Filtering
+- Visual Bar & Pie Chart PDF & Excel Statement Exports
+
+Log in now to experience your new Premium features:
+http://localhost:5173/login
+
+Best regards,
+The BudgetBuddy Team
+    """
+
+    if smtp_host and smtp_user and smtp_password:
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['From'] = f"BudgetBuddy Support <{smtp_user}>"
+            msg['To'] = recipient_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(text_body, 'plain'))
+
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+            server.quit()
+            print(f"[Email Sent] Premium approval notification emailed to {recipient_email}")
+            return True
+        except Exception as e:
+            print(f"[Email Error] Failed to email user via SMTP: {e}")
+
+    print(f"\n=======================================================")
+    print(f" [DEV EMAIL SIMULATOR] Recipient: {recipient_email}")
+    print(f" [DEV EMAIL SIMULATOR] Premium Approval for: {student_name}")
+    print(f"=======================================================\n")
+    return True

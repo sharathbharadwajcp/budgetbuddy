@@ -4,9 +4,10 @@ from typing import List
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_roles
-from app.models import User, UserRole
+from app.models import User, UserRole, NotificationType
 from app.schemas.schemas import UserOut, UserUpdate
-from app.services.notification_service import log_system_action
+from app.services.notification_service import log_system_action, create_notification
+from app.services.email_service import send_premium_request_email_to_admin
 
 router = APIRouter()
 
@@ -38,3 +39,42 @@ def update_me(
     db.refresh(current_user)
     log_system_action(db=db, user_id=current_user.id, action="User Profile Updated")
     return current_user
+
+@router.post("/request-premium")
+def request_premium_upgrade(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role in [UserRole.PREMIUM.value, UserRole.ADMIN.value]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Your account is already a {current_user.role.upper()} account!"
+        )
+
+    # 1. Find all active Admin users
+    admin_users = db.query(User).filter(User.role == UserRole.ADMIN.value, User.is_active == True).all()
+
+    # 2. Trigger in-app notification & email for each admin
+    for admin in admin_users:
+        create_notification(
+            db=db,
+            user_id=admin.id,
+            title="⭐ New Premium Upgrade Request",
+            message=f"User {current_user.full_name} ({current_user.email}) submitted a request to upgrade to Premium.",
+            notification_type=NotificationType.PREMIUM_REQUEST.value
+        )
+        send_premium_request_email_to_admin(
+            admin_email=admin.email,
+            student_name=current_user.full_name,
+            student_email=current_user.email
+        )
+
+    # 3. Log system audit action
+    log_system_action(
+        db=db,
+        user_id=current_user.id,
+        action="Requested Premium Upgrade",
+        details=f"Student {current_user.email} submitted upgrade request to admins"
+    )
+
+    return {"message": "Premium upgrade request submitted to administrator successfully!"}

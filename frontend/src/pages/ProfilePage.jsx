@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { User, Settings, Save, Bell, Shield, Wallet, Trash2, AlertTriangle, X } from 'lucide-react';
+import { User, Settings, Save, Bell, Shield, Wallet, Trash2, AlertTriangle, X, Star, Sparkles, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
@@ -21,6 +21,8 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [requestingPremium, setRequestingPremium] = useState(false);
+  const [premiumRequested, setPremiumRequested] = useState(false);
 
   // Delete Account Confirmation Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -50,6 +52,20 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  const handleRequestPremium = async () => {
+    setRequestingPremium(true);
+    setMessage('');
+    try {
+      const res = await api.post('/users/request-premium');
+      setPremiumRequested(true);
+      setMessage(res.data.message || 'Upgrade request submitted! In-app & Email notifications sent to admin.');
+    } catch (err) {
+      setMessage(err.response?.data?.detail || 'Failed to submit premium request.');
+    } finally {
+      setRequestingPremium(false);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -98,6 +114,45 @@ const ProfilePage = () => {
             <p className="text-xs text-slate-400">{user?.email} • <span className="uppercase text-cyan-400 font-extrabold">{user?.role}</span> Account</p>
           </div>
         </div>
+
+        {/* Premium Upgrade Request Banner for Student Users */}
+        {user?.role === 'student' && (
+          <div className="glass-panel p-6 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-cyan-500/10 relative overflow-hidden space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
+                  <Star className="w-6 h-6 animate-spin-slow" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                    Upgrade to BudgetBuddy Premium
+                    <span className="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold px-2 py-0.5 rounded-full uppercase">Admin Approval</span>
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Unlock 12-month trend charts, AI cashflow predictions, custom date range filters, and PDF/Excel visual chart exports.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={requestingPremium || premiumRequested}
+                onClick={handleRequestPremium}
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition shrink-0 disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                {premiumRequested ? 'Request Submitted ✓' : requestingPremium ? 'Submitting...' : 'Request Premium Upgrade'}
+              </button>
+            </div>
+
+            {premiumRequested && (
+              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                Request sent to Administrator! You will be notified in-app & via email upon Admin approval.
+              </div>
+            )}
+          </div>
+        )}
 
         {message && (
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
