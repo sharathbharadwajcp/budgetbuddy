@@ -13,7 +13,6 @@ import BudgetsPage from './pages/BudgetsPage';
 import SavingsPage from './pages/SavingsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import BankAccountsPage from './pages/BankAccountsPage';
-import AnalyticsPage from './pages/AnalyticsPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
