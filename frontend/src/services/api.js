@@ -9,10 +9,10 @@ const api = axios.create({
   },
 });
 
-// Interceptor to attach JWT Authorization token
+// Interceptor to attach JWT Authorization token (checks sessionStorage first for multi-tab isolation)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('budgetbuddy_token');
+    const token = sessionStorage.getItem('budgetbuddy_token') || localStorage.getItem('budgetbuddy_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,6 +26,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      sessionStorage.removeItem('budgetbuddy_token');
+      sessionStorage.removeItem('budgetbuddy_user');
       localStorage.removeItem('budgetbuddy_token');
       localStorage.removeItem('budgetbuddy_user');
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {

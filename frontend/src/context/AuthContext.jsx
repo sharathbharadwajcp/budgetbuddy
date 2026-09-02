@@ -5,10 +5,10 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('budgetbuddy_user');
+    const saved = sessionStorage.getItem('budgetbuddy_user') || localStorage.getItem('budgetbuddy_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('budgetbuddy_token'));
+  const [token, setToken] = useState(() => sessionStorage.getItem('budgetbuddy_token') || localStorage.getItem('budgetbuddy_token'));
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
 
@@ -23,10 +23,20 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  const saveAuthData = (tokenData, userData) => {
+    sessionStorage.setItem('budgetbuddy_token', tokenData);
+    sessionStorage.setItem('budgetbuddy_user', JSON.stringify(userData));
+    localStorage.setItem('budgetbuddy_token', tokenData);
+    localStorage.setItem('budgetbuddy_user', JSON.stringify(userData));
+    setToken(tokenData);
+    setUser(userData);
+  };
+
   const fetchCurrentUser = async () => {
     try {
       const res = await api.get('/auth/me');
       setUser(res.data);
+      sessionStorage.setItem('budgetbuddy_user', JSON.stringify(res.data));
       localStorage.setItem('budgetbuddy_user', JSON.stringify(res.data));
     } catch (err) {
       console.error('Failed to fetch user', err);
@@ -55,10 +65,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     const { access_token, user: userData } = res.data;
-    localStorage.setItem('budgetbuddy_token', access_token);
-    localStorage.setItem('budgetbuddy_user', JSON.stringify(userData));
-    setToken(access_token);
-    setUser(userData);
+    saveAuthData(access_token, userData);
     fetchNotifications();
     return userData;
   };
@@ -76,10 +83,7 @@ export const AuthProvider = ({ children }) => {
   const verifyEmail = async (email, code) => {
     const res = await api.post('/auth/verify-email', { email, code });
     const { access_token, user: userData } = res.data;
-    localStorage.setItem('budgetbuddy_token', access_token);
-    localStorage.setItem('budgetbuddy_user', JSON.stringify(userData));
-    setToken(access_token);
-    setUser(userData);
+    saveAuthData(access_token, userData);
     fetchNotifications();
     return userData;
   };
@@ -98,15 +102,14 @@ export const AuthProvider = ({ children }) => {
     });
 
     const { access_token, user: userData } = res.data;
-    localStorage.setItem('budgetbuddy_token', access_token);
-    localStorage.setItem('budgetbuddy_user', JSON.stringify(userData));
-    setToken(access_token);
-    setUser(userData);
+    saveAuthData(access_token, userData);
     fetchNotifications();
     return userData;
   };
 
   const logout = () => {
+    sessionStorage.removeItem('budgetbuddy_token');
+    sessionStorage.removeItem('budgetbuddy_user');
     localStorage.removeItem('budgetbuddy_token');
     localStorage.removeItem('budgetbuddy_user');
     setToken(null);
