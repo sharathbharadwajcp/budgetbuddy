@@ -87,6 +87,10 @@ def get_monthly_trends(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Enforce role restriction: Students are capped at 6 months maximum
+    if current_user.role == "student":
+        months_count = min(months_count, 6)
+
     target_month_str = month or datetime.utcnow().strftime("%Y-%m")
     try:
         year, mon = map(int, target_month_str.split("-"))

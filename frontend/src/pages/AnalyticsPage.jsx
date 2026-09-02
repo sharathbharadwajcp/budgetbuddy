@@ -93,13 +93,15 @@ const AnalyticsPage = () => {
               <Filter className="w-4 h-4 text-indigo-400" />
               <span className="text-xs font-bold text-slate-300">Trend Horizon:</span>
               <select
-                value={trendHorizon}
+                value={user?.role === 'student' && trendHorizon > 6 ? 6 : trendHorizon}
                 onChange={(e) => setTrendHorizon(Number(e.target.value))}
                 className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-indigo-500"
               >
                 <option value={3}>3 Months</option>
                 <option value={6}>6 Months</option>
-                <option value={12}>12 Months {user?.role === 'student' ? '(Premium)' : ''}</option>
+                {(user?.role === 'admin' || user?.role === 'premium') && (
+                  <option value={12}>12 Months (Premium ⭐)</option>
+                )}
               </select>
             </div>
           </div>
