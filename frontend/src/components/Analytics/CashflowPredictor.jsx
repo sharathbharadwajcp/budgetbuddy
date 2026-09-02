@@ -148,23 +148,23 @@ const CashflowPredictor = ({ month }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-[#070D1F] border border-cyan-900/40">
           <p className="text-[11px] font-bold text-cyan-400/80 uppercase">Daily Burn Rate</p>
-          <p className="text-xl font-extrabold text-cyan-400 mt-1">${daily_burn_rate.toFixed(2)} <span className="text-[10px] font-normal text-slate-500">/day</span></p>
+          <p className="text-xl font-extrabold text-cyan-400 mt-1">${(daily_burn_rate || 0).toFixed(2)} <span className="text-[10px] font-normal text-slate-500">/day</span></p>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#070D1F] border border-cyan-900/40">
           <p className="text-[11px] font-bold text-cyan-400/80 uppercase">Current Total Spent</p>
-          <p className="text-xl font-extrabold text-rose-400 mt-1">${current_spent.toFixed(2)}</p>
+          <p className="text-xl font-extrabold text-rose-400 mt-1">${(current_spent || 0).toFixed(2)}</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#070D1F] border border-cyan-900/40">
           <p className="text-[11px] font-bold text-cyan-400/80 uppercase">Projected Total Expense</p>
-          <p className="text-xl font-extrabold text-blue-400 mt-1">${projected_month_end_expense.toFixed(2)}</p>
+          <p className="text-xl font-extrabold text-blue-400 mt-1">${(projected_month_end_expense || 0).toFixed(2)}</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#070D1F] border border-cyan-900/40">
           <p className="text-[11px] font-bold text-cyan-400/80 uppercase">Projected End Balance</p>
-          <p className={`text-xl font-extrabold mt-1 ${projected_month_end_balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            ${projected_month_end_balance.toFixed(2)}
+          <p className={`text-xl font-extrabold mt-1 ${(projected_month_end_balance || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            ${(projected_month_end_balance || 0).toFixed(2)}
           </p>
         </div>
       </div>

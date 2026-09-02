@@ -407,7 +407,7 @@ const Dashboard = () => {
                       <p className="text-[11px] text-slate-400">{exp.category} • {exp.date}</p>
                     </div>
                     <span className="font-extrabold text-sm text-rose-400">
-                      -${exp.amount.toFixed(2)}
+                      -${(exp?.amount || 0).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -435,7 +435,7 @@ const Dashboard = () => {
                   <div key={bud.id} className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
                     <div className="flex items-center justify-between text-xs mb-1">
                       <span className="font-bold text-slate-200">{bud.category}</span>
-                      <span className="text-slate-400">${bud.total_spent.toFixed(2)} / ${bud.amount_allocated.toFixed(2)}</span>
+                      <span className="text-slate-400">${(bud?.total_spent || 0).toFixed(2)} / ${(bud?.amount_allocated || 0).toFixed(2)}</span>
                     </div>
                     <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                       <div 
