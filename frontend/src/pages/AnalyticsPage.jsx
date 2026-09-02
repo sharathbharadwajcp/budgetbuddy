@@ -45,7 +45,7 @@ const AnalyticsPage = () => {
       const [sumRes, catRes, trendRes] = await Promise.all([
         api.get(`/analytics/summary?month=${selectedMonth}`),
         api.get(`/analytics/categories?month=${selectedMonth}`),
-        api.get(`/analytics/trends?months_count=${trendHorizon}`)
+        api.get(`/analytics/trends?month=${selectedMonth}&months_count=${trendHorizon}`)
       ]);
 
       setSummary(sumRes.data);

@@ -82,29 +82,42 @@ def get_category_spending(
 
 @router.get("/trends", response_model=List[MonthlyTrend])
 def get_monthly_trends(
+    month: Optional[str] = None, # YYYY-MM
     months_count: int = 6,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    trends = []
-    now = datetime.utcnow()
-    for i in range(months_count - 1, -1, -1):
-        # Calculate month date string
-        month_date = now - timedelta(days=i*30)
-        month_str = month_date.strftime("%Y-%m")
+    target_month_str = month or datetime.utcnow().strftime("%Y-%m")
+    try:
+        year, mon = map(int, target_month_str.split("-"))
+    except ValueError:
+        now = datetime.utcnow()
+        year, mon = now.year, now.month
 
+    months_list = []
+    curr_y, curr_m = year, mon
+    for _ in range(months_count):
+        months_list.append(f"{curr_y:04d}-{curr_m:02d}")
+        curr_m -= 1
+        if curr_m < 1:
+            curr_m = 12
+            curr_y -= 1
+    months_list.reverse()
+
+    trends = []
+    for m_str in months_list:
         inc = db.query(func.sum(Income.amount)).filter(
             Income.user_id == current_user.id,
-            Income.date.like(f"{month_str}%")
+            Income.date.like(f"{m_str}%")
         ).scalar() or 0.0
 
         exp = db.query(func.sum(Expense.amount)).filter(
             Expense.user_id == current_user.id,
-            Expense.date.like(f"{month_str}%")
+            Expense.date.like(f"{m_str}%")
         ).scalar() or 0.0
 
         trends.append(MonthlyTrend(
-            month=month_str,
+            month=m_str,
             income=round(inc, 2),
             expense=round(exp, 2)
         ))
