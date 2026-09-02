@@ -69,12 +69,12 @@ const Dashboard = () => {
         api.get('/savings/')
       ]);
 
-      setSummary(sumRes.data);
-      setCategories(catRes.data);
-      setTrends(trendRes.data);
-      setRecentExpenses(expRes.data.slice(0, 5));
-      setBudgets(budRes.data);
-      setGoals(goalRes.data.slice(0, 3));
+      setSummary(sumRes.data || {});
+      setCategories(Array.isArray(catRes.data) ? catRes.data : []);
+      setTrends(Array.isArray(trendRes.data) ? trendRes.data : []);
+      setRecentExpenses(Array.isArray(expRes.data) ? expRes.data.slice(0, 5) : []);
+      setBudgets(Array.isArray(budRes.data) ? budRes.data : []);
+      setGoals(Array.isArray(goalRes.data) ? goalRes.data.slice(0, 3) : []);
     } catch (err) {
       console.error('Failed to load dashboard data', err);
     } finally {
@@ -85,6 +85,17 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [selectedMonth, trendHorizon]);
+
+  if (loading && !summary) {
+    return (
+      <Layout onRefreshData={fetchDashboardData}>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center text-cyan-400 gap-3">
+          <div className="w-9 h-9 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-semibold text-slate-300">Loading your financial dashboard...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   const handleRequestUpgrade = async () => {
     setUpgradeLoading(true);

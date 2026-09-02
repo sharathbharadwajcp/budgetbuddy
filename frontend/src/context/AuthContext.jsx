@@ -5,10 +5,17 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = sessionStorage.getItem('budgetbuddy_user') || localStorage.getItem('budgetbuddy_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = sessionStorage.getItem('budgetbuddy_user') || localStorage.getItem('budgetbuddy_user');
+      return (saved && saved !== 'undefined') ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
-  const [token, setToken] = useState(() => sessionStorage.getItem('budgetbuddy_token') || localStorage.getItem('budgetbuddy_token'));
+  const [token, setToken] = useState(() => {
+    const saved = sessionStorage.getItem('budgetbuddy_token') || localStorage.getItem('budgetbuddy_token');
+    return (saved && saved !== 'undefined') ? saved : null;
+  });
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
 
