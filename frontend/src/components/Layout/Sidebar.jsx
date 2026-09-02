@@ -29,7 +29,6 @@ const Sidebar = () => {
     { name: 'Savings Goals', to: '/savings', icon: Target },
     { name: 'Notifications', to: '/notifications', icon: Bell },
     { name: 'Bank Accounts & Cards', to: '/banks', icon: Building2 },
-    { name: 'Analytics', to: '/analytics', icon: BarChart3 },
     { name: 'Reports & Export', to: '/reports', icon: FileText },
     { name: 'Profile & Settings', to: '/profile', icon: User },
   ];
