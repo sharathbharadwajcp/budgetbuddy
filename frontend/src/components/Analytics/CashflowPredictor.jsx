@@ -21,18 +21,19 @@ import {
   ReferenceLine 
 } from 'recharts';
 
-const CashflowPredictor = () => {
+const CashflowPredictor = ({ month }) => {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPrediction();
-  }, []);
+  }, [month]);
 
   const fetchPrediction = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/analytics/prediction');
+      const url = month ? `/analytics/prediction?month=${month}` : '/analytics/prediction';
+      const res = await api.get(url);
       setPrediction(res.data);
     } catch (err) {
       console.error('Failed to load cashflow prediction', err);
