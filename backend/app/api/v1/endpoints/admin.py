@@ -69,8 +69,14 @@ def update_user_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.ADMIN.value]))
 ):
-    if role not in [r.value for r in UserRole]:
-        raise HTTPException(status_code=400, detail="Invalid role specified")
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Administrators cannot alter their own administrator role.")
+
+    if role == UserRole.ADMIN.value:
+        raise HTTPException(status_code=400, detail="Creating or promoting users to Admin role is restricted.")
+
+    if role not in [UserRole.STUDENT.value, UserRole.PREMIUM.value]:
+        raise HTTPException(status_code=400, detail="Role can only be set to 'student' or 'premium'.")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

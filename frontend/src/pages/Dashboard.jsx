@@ -114,59 +114,27 @@ const Dashboard = () => {
     <Layout onRefreshData={fetchDashboardData}>
       <div className="space-y-6">
 
-        {/* 1. Header with Role Badge & Date Range Selector */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
-          <div>
-            <div className="flex items-center gap-2 text-indigo-400 mb-1">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Financial Overview Dashboard</span>
-              <span className={`px-2 py-0.5 text-[10px] uppercase font-extrabold rounded-full border ml-2 ${
-                user?.role === 'admin' 
-                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' 
-                  : user?.role === 'premium'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
-              }`}>
-                {user?.role} Mode
-              </span>
-            </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white">
-              Welcome back, {user?.full_name?.split(' ')[0]}! 👋
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Financial health, monthly spending distribution, and budget tracking.
-            </p>
+        {/* 1. Header with Role Badge */}
+        <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+          <div className="flex items-center gap-2 text-indigo-400 mb-1">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">Financial Overview Dashboard</span>
+            <span className={`px-2 py-0.5 text-[10px] uppercase font-extrabold rounded-full border ml-2 ${
+              user?.role === 'admin' 
+                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' 
+                : user?.role === 'premium'
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
+            }`}>
+              {user?.role} Mode
+            </span>
           </div>
-
-          {/* Interactive Month Picker & Trend Horizon Filter */}
-          <div className="flex flex-wrap items-center gap-3 bg-[#070D1F] p-2.5 rounded-2xl border border-slate-800">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-cyan-400" />
-              <span className="text-xs font-bold text-slate-300">Month:</span>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 border-l border-slate-800 pl-3">
-              <Filter className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-bold text-slate-300">Horizon:</span>
-              <select
-                value={user?.role === 'student' && trendHorizon > 6 ? 6 : trendHorizon}
-                onChange={(e) => setTrendHorizon(Number(e.target.value))}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-indigo-500"
-              >
-                <option value={3}>3 Months</option>
-                <option value={6}>6 Months</option>
-                {(user?.role === 'admin' || user?.role === 'premium') && (
-                  <option value={12}>12 Months (Premium ⭐)</option>
-                )}
-              </select>
-            </div>
-          </div>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white">
+            Welcome back, {(user?.full_name || 'User').split(' ')[0]}! 👋
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Financial health, monthly spending distribution, and budget tracking.
+          </p>
         </div>
 
         {/* 2. Role Segregated Banners */}
@@ -317,7 +285,49 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* 5. Merged Analytics Visual Charts Grid (Bar Chart + Donut Pie Chart) */}
+        {/* 5. Separate Date & Horizon Control Bar (Placed Directly Before Graphs) */}
+        <div className="glass-panel p-5 rounded-3xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h4 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+              <Filter className="w-4 h-4 text-cyan-400" />
+              <span>Financial Analytics & Trend Horizon Filters</span>
+            </h4>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Select target month and historical horizon to filter comparison charts below.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 bg-[#070D1F] p-2.5 rounded-2xl border border-slate-800 self-start sm:self-auto">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-bold text-slate-300">Month:</span>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-cyan-500 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 border-l border-slate-800 pl-3">
+              <Filter className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold text-slate-300">Horizon:</span>
+              <select
+                value={user?.role === 'student' && trendHorizon > 6 ? 6 : trendHorizon}
+                onChange={(e) => setTrendHorizon(Number(e.target.value))}
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+              >
+                <option value={3}>3 Months</option>
+                <option value={6}>6 Months</option>
+                {(user?.role === 'admin' || user?.role === 'premium') && (
+                  <option value={12}>12 Months (Premium ⭐)</option>
+                )}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* 6. Merged Analytics Visual Charts Grid (Bar Chart + Donut Pie Chart) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Monthly Comparison Bar Chart */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-800">

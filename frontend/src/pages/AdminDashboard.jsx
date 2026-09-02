@@ -12,7 +12,10 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import { useAuth } from '../context/AuthContext';
+
 const AdminDashboard = () => {
+  const { user: currentUser } = useAuth();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -144,15 +147,21 @@ const AdminDashboard = () => {
                       <p className="text-[11px] text-slate-400">{u.email}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
-                      >
-                        <option value="student">Student</option>
-                        <option value="premium">Premium</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      {u.id === currentUser?.id || u.role === 'admin' ? (
+                        <span className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-300 border border-rose-500/20 text-xs font-bold flex items-center gap-1.5 w-fit">
+                          <span>Admin</span>
+                          <span className="text-[10px] text-slate-400 font-normal">🔒</span>
+                        </span>
+                      ) : (
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                          className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                        >
+                          <option value="student">Student 🎓</option>
+                          <option value="premium">Premium ⭐</option>
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {u.is_active ? (
