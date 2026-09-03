@@ -1,14 +1,17 @@
 import pytest
+from datetime import datetime
 from tests.conftest import create_user_and_get_token
 
 def test_budget_creation_and_percent_used(client):
     token = create_user_and_get_token(client, email="budgetmodule@example.com")
     headers = {"Authorization": f"Bearer {token}"}
+    current_month = datetime.utcnow().strftime("%Y-%m")
 
     # 1. Create Budget
     bud_resp = client.post("/api/v1/budgets/", headers=headers, json={
         "category": "Entertainment",
-        "amount_allocated": 200.0
+        "amount_allocated": 200.0,
+        "month": current_month
     })
     assert bud_resp.status_code == 201
     assert bud_resp.json()["amount_allocated"] == 200.0

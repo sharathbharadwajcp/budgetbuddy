@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 from tests.conftest import create_user_and_get_token
 
 def test_create_and_list_expenses(client):
@@ -28,11 +29,13 @@ def test_create_and_list_expenses(client):
 def test_expense_budget_overspend_trigger(client):
     token = create_user_and_get_token(client, email="overspend@example.com")
     headers = {"Authorization": f"Bearer {token}"}
+    current_month = datetime.utcnow().strftime("%Y-%m")
 
     # Set Budget of $100 for Food
     client.post("/api/v1/budgets/", headers=headers, json={
         "category": "Food",
-        "amount_allocated": 100.0
+        "amount_allocated": 100.0,
+        "month": current_month
     })
 
     # Add Expense of $90 (90% spent) -> Triggers overspending alert
