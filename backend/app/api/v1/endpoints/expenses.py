@@ -157,6 +157,14 @@ def create_expense(
     # Trigger budget check & notifications
     check_budget_alerts(db, current_user.id, expense.category, expense.date, new_expense_amount=expense.amount)
 
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="💸 Expense Added",
+        message=f"Expense '{expense.title}' (${expense.amount:,.2f}) added under {expense.category}.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return expense
 
 @router.put("/{expense_id}", response_model=ExpenseOut)
@@ -179,6 +187,14 @@ def update_expense(
 
     check_budget_alerts(db, current_user.id, expense.category, expense.date, new_expense_amount=expense.amount)
 
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="✏️ Expense Updated",
+        message=f"Expense '{expense.title}' updated to ${expense.amount:,.2f}.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return expense
 
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -191,6 +207,18 @@ def delete_expense(
     if not expense:
         raise HTTPException(status_code=404, detail="Expense entry not found")
 
+    title = expense.title
+    amount = expense.amount
+
     db.delete(expense)
     db.commit()
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🗑️ Expense Deleted",
+        message=f"Expense '{title}' (${amount:,.2f}) was removed.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return None

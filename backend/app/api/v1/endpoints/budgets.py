@@ -6,8 +6,9 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, Budget, Expense
+from app.models import User, Budget, Expense, NotificationType
 from app.schemas.schemas import BudgetCreate, BudgetUpdate, BudgetOut
+from app.services.notification_service import create_notification
 
 router = APIRouter()
 
@@ -69,6 +70,14 @@ def create_budget(
             existing.description = budget_in.description
         db.commit()
         db.refresh(existing)
+
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            title="🎯 Budget Updated",
+            message=f"Budget for {existing.category} ({existing.month}) updated to ${existing.amount_allocated:,.2f}.",
+            notification_type=NotificationType.SYSTEM.value
+        )
         return build_budget_response(existing, db)
 
     budget = Budget(
@@ -81,6 +90,14 @@ def create_budget(
     db.add(budget)
     db.commit()
     db.refresh(budget)
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🎯 Budget Created",
+        message=f"Budget of ${budget.amount_allocated:,.2f} set for {budget.category} ({budget.month}).",
+        notification_type=NotificationType.SYSTEM.value
+    )
     return build_budget_response(budget, db)
 
 @router.put("/{budget_id}", response_model=BudgetOut)
@@ -101,6 +118,15 @@ def update_budget(
 
     db.commit()
     db.refresh(budget)
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🎯 Budget Updated",
+        message=f"Budget for {budget.category} ({budget.month}) updated to ${budget.amount_allocated:,.2f}.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return build_budget_response(budget, db)
 
 @router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -113,6 +139,18 @@ def delete_budget(
     if not budget:
         raise HTTPException(status_code=404, detail="Budget not found")
 
+    cat = budget.category
+    m = budget.month
+
     db.delete(budget)
     db.commit()
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🗑️ Budget Deleted",
+        message=f"Budget for {cat} ({m}) was removed.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return None

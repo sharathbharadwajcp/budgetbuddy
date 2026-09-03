@@ -55,6 +55,15 @@ def create_savings_goal(
     db.add(goal)
     db.commit()
     db.refresh(goal)
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🏦 Savings Goal Created",
+        message=f"Savings goal '{goal.title}' (${goal.target_amount:,.2f} target) established.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return build_savings_response(goal)
 
 @router.post("/{goal_id}/deposit", response_model=SavingsGoalOut)
@@ -157,6 +166,14 @@ def deposit_savings(
                 percent_reached=new_pct,
                 is_completed=False
             )
+    else:
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            title="💰 Savings Goal Deposit",
+            message=f"Deposited ${deposit.amount:,.2f} into '{goal.title}'. Total saved: ${goal.current_amount:,.2f} / ${goal.target_amount:,.2f}.",
+            notification_type=NotificationType.SYSTEM.value
+        )
 
     db.commit()
     db.refresh(goal)
@@ -194,6 +211,17 @@ def delete_savings_goal(
     if not goal:
         raise HTTPException(status_code=404, detail="Savings goal not found")
 
+    title = goal.title
+
     db.delete(goal)
     db.commit()
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🗑️ Savings Goal Removed",
+        message=f"Savings goal '{title}' was removed.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return None

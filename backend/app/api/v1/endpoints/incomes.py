@@ -5,8 +5,9 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, Income, BankAccount
+from app.models import User, Income, BankAccount, NotificationType
 from app.schemas.schemas import IncomeCreate, IncomeUpdate, IncomeOut
+from app.services.notification_service import create_notification
 
 router = APIRouter()
 
@@ -50,6 +51,15 @@ def create_income(
 
     db.commit()
     db.refresh(income)
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="💵 Income Logged",
+        message=f"Income '{income.title}' (${income.amount:,.2f}) added to {income.category}.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return income
 
 @router.put("/{income_id}", response_model=IncomeOut)
@@ -69,6 +79,15 @@ def update_income(
 
     db.commit()
     db.refresh(income)
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="✏️ Income Updated",
+        message=f"Income '{income.title}' updated to ${income.amount:,.2f}.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return income
 
 @router.delete("/{income_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -81,6 +100,18 @@ def delete_income(
     if not income:
         raise HTTPException(status_code=404, detail="Income entry not found")
 
+    title = income.title
+    amount = income.amount
+
     db.delete(income)
     db.commit()
+
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        title="🗑️ Income Deleted",
+        message=f"Income '{title}' (${amount:,.2f}) was removed.",
+        notification_type=NotificationType.SYSTEM.value
+    )
+
     return None
