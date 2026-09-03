@@ -20,9 +20,9 @@ def test_budget_creation_and_percent_used(client):
         "category": "Entertainment"
     })
 
-    # 3. Retrieve Budgets list & check computed total_spent and percent_used
+    # 3. Retrieve Budgets list & check computed amount_spent and utilization_percentage
     list_resp = client.get("/api/v1/budgets/", headers=headers)
     assert list_resp.status_code == 200
     bud = list_resp.json()[0]
-    assert bud["total_spent"] == 50.0
-    assert bud["percent_used"] == 25.0
+    assert bud["amount_spent"] == 50.0
+    assert bud["utilization_percentage"] == 25.0

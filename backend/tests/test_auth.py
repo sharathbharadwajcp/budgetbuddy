@@ -37,7 +37,7 @@ def test_login_invalid_credentials(client):
         "username": "nonexistent@example.com",
         "password": "wrongpassword"
     })
-    assert resp.status_code == 400
+    assert resp.status_code == 401
 
 def test_get_current_user_me(client):
     token = create_user_and_get_token(client, email="meuser@example.com")
