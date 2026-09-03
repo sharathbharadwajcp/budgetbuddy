@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import { X, PlusCircle } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const DepositModal = ({ isOpen, onClose, onSuccess, goal }) => {
+  const toast = useToast();
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,11 +18,15 @@ const DepositModal = ({ isOpen, onClose, onSuccess, goal }) => {
     setLoading(true);
 
     try {
-      await api.post(`/savings/${goal.id}/deposit`, { amount: parseFloat(amount) });
-      onSuccess();
+      const depVal = parseFloat(amount);
+      await api.post(`/savings/${goal.id}/deposit`, { amount: depVal });
+      toast.success(`Deposited $${depVal.toFixed(2)} into '${goal.title}'! 🎉`);
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to deposit contribution');
+      const msg = err.response?.data?.detail || 'Failed to deposit contribution';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

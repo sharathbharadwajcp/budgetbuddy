@@ -12,16 +12,18 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import { useToast } from '../context/ToastContext';
+
 const CATEGORIES = ['All', 'Pocket Money', 'Scholarship', 'Freelance', 'Part-Time Job', 'Other'];
 
 const IncomePage = () => {
+  const toast = useToast();
   const [incomes, setIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [monthFilter, setMonthFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
 
   const fetchIncomes = async () => {
     setLoading(true);
@@ -50,9 +52,10 @@ const IncomePage = () => {
     if (!window.confirm('Are you sure you want to delete this income entry?')) return;
     try {
       await api.delete(`/incomes/${id}`);
+      toast.delete('Income record deleted successfully!');
       fetchIncomes();
     } catch (err) {
-      alert('Failed to delete income');
+      toast.error('Failed to delete income');
     }
   };
 

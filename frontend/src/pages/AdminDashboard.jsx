@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const AdminDashboard = () => {
+  const toast = useToast();
   const { user: currentUser } = useAuth();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -26,7 +28,7 @@ const AdminDashboard = () => {
     try {
       const [statsRes, usersRes, logsRes] = await Promise.all([
         api.get('/admin/stats'),
-        api.get('/users/'),
+        api.get('/admin/users'),
         api.get('/admin/logs')
       ]);
 
@@ -47,18 +49,20 @@ const AdminDashboard = () => {
   const handleRoleChange = async (userId, newRole) => {
     try {
       await api.put(`/admin/users/${userId}/role?role=${newRole}`);
+      toast.success(`User role updated to ${newRole.toUpperCase()}!`);
       fetchAdminData();
     } catch (err) {
-      alert('Failed to change user role');
+      toast.error(err.response?.data?.detail || 'Failed to change user role');
     }
   };
 
   const handleStatusToggle = async (userId, currentStatus) => {
     try {
       await api.put(`/admin/users/${userId}/status?is_active=${!currentStatus}`);
+      toast.info(`User status toggled to ${!currentStatus ? 'Active' : 'Inactive'}`);
       fetchAdminData();
     } catch (err) {
-      alert('Failed to toggle user status');
+      toast.error(err.response?.data?.detail || 'Failed to toggle user status');
     }
   };
 

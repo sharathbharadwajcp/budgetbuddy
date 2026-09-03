@@ -14,7 +14,10 @@ import {
   Award
 } from 'lucide-react';
 
+import { useToast } from '../context/ToastContext';
+
 const SavingsPage = () => {
+  const toast = useToast();
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
@@ -42,9 +45,10 @@ const SavingsPage = () => {
     if (!window.confirm('Delete this savings goal?')) return;
     try {
       await api.delete(`/savings/${id}`);
+      toast.delete('Savings goal deleted successfully!');
       fetchGoals();
     } catch (err) {
-      alert('Failed to delete goal');
+      toast.error('Failed to delete goal');
     }
   };
 

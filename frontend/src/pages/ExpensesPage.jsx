@@ -15,9 +15,12 @@ import {
   CreditCard
 } from 'lucide-react';
 
+import { useToast } from '../context/ToastContext';
+
 const CATEGORIES = ['All', 'Food', 'Travel', 'Shopping', 'Education', 'Entertainment', 'Miscellaneous'];
 
 const ExpensesPage = () => {
+  const toast = useToast();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -25,7 +28,6 @@ const ExpensesPage = () => {
   const [monthFilter, setMonthFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
 
   const fetchExpenses = async () => {
     setLoading(true);
@@ -55,9 +57,10 @@ const ExpensesPage = () => {
     if (!window.confirm('Are you sure you want to delete this expense record?')) return;
     try {
       await api.delete(`/expenses/${id}`);
+      toast.delete('Expense record deleted successfully!');
       fetchExpenses();
     } catch (err) {
-      alert('Failed to delete expense');
+      toast.error('Failed to delete expense');
     }
   };
 

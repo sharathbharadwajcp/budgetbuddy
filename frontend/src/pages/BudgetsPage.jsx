@@ -13,7 +13,10 @@ import {
   Calendar
 } from 'lucide-react';
 
+import { useToast } from '../context/ToastContext';
+
 const BudgetsPage = () => {
+  const toast = useToast();
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -40,9 +43,10 @@ const BudgetsPage = () => {
     if (!window.confirm('Remove this category budget allocation?')) return;
     try {
       await api.delete(`/budgets/${id}`);
+      toast.delete('Budget allocation deleted successfully!');
       fetchBudgets();
     } catch (err) {
-      alert('Failed to delete budget');
+      toast.error('Failed to delete budget');
     }
   };
 

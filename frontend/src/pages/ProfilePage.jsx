@@ -5,7 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { User, Settings, Save, Bell, Shield, Wallet, Trash2, AlertTriangle, X, Star, Sparkles, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { useToast } from '../context/ToastContext';
+
 const ProfilePage = () => {
+  const toast = useToast();
   const { user, setUser, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -68,9 +71,13 @@ const ProfilePage = () => {
       const res = await api.post('/users/request-premium');
       setPremiumRequested(true);
       if (user) setUser({ ...user, has_pending_premium_request: true });
-      setMessage(res.data?.message || 'Upgrade request submitted! In-app & Email notifications sent to admin.');
+      const msg = res.data?.message || 'Upgrade request submitted to administrator!';
+      setMessage(msg);
+      toast.success(msg);
     } catch (err) {
-      setMessage(err.response?.data?.detail || 'Failed to submit premium request.');
+      const msg = err.response?.data?.detail || 'Failed to submit premium request.';
+      setMessage(msg);
+      toast.error(msg);
     } finally {
       setRequestingPremium(false);
     }
@@ -88,8 +95,10 @@ const ProfilePage = () => {
       }
       const pRes = await api.put('/profiles/me', formData);
       if (pRes.data) setProfile(pRes.data);
+      toast.success('Profile & preferences updated successfully!');
       setMessage('Profile and preferences updated successfully!');
     } catch (err) {
+      toast.error('Failed to update profile settings.');
       setMessage('Failed to update profile settings.');
     } finally {
       setSaving(false);
@@ -100,10 +109,11 @@ const ProfilePage = () => {
     setDeleting(true);
     try {
       await api.delete('/auth/me');
+      toast.delete('Account deleted permanently.');
       logout();
       navigate('/register');
     } catch (err) {
-      alert('Failed to delete account. Please try again.');
+      toast.error('Failed to delete account.');
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);

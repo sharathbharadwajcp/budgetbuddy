@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { X, Wallet, Building2 } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const INCOME_CATEGORIES = ['Pocket Money', 'Scholarship', 'Freelance', 'Part-Time Job', 'Other'];
 
 const IncomeModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
@@ -63,14 +65,18 @@ const IncomeModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
 
       if (initialData?.id) {
         await api.put(`/incomes/${initialData.id}`, payload);
-        onSuccess(`Income '${payload.title}' updated successfully!`);
+        toast.success(`Income '${payload.title}' updated successfully!`);
+        if (onSuccess) onSuccess();
       } else {
         await api.post('/incomes/', payload);
-        onSuccess(`Income '${payload.title}' of $${payload.amount.toFixed(2)} added successfully!`);
+        toast.success(`Income '${payload.title}' of $${payload.amount.toFixed(2)} logged!`);
+        if (onSuccess) onSuccess();
       }
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save income record');
+      const msg = err.response?.data?.detail || 'Failed to save income record';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
