@@ -49,8 +49,6 @@ const Dashboard = () => {
   const [budgets, setBudgets] = useState([]);
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [upgradeSuccess, setUpgradeSuccess] = useState(false);
 
   // Date Range & Horizon Controls
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -97,19 +95,6 @@ const Dashboard = () => {
     );
   }
 
-  const handleRequestUpgrade = async () => {
-    setUpgradeLoading(true);
-    try {
-      await api.post('/users/request-premium');
-      setUpgradeSuccess(true);
-      fetchDashboardData();
-    } catch (err) {
-      console.error('Failed to request premium upgrade', err);
-    } finally {
-      setUpgradeLoading(false);
-    }
-  };
-
   return (
     <Layout onRefreshData={fetchDashboardData}>
       <div className="space-y-6">
@@ -138,39 +123,6 @@ const Dashboard = () => {
         </div>
 
         {/* 2. Role Segregated Banners */}
-        {/* Student Banner */}
-        {user?.role === 'student' && (
-          <div className="p-5 rounded-3xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-indigo-950/60 border border-cyan-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                <Crown className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-sm text-white">🎓 Student Account Active</h4>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Upgrade to Premium for AI Cashflow Velocity Forecasting, 12-Month Trends, and Embedded Visual Reports.
-                </p>
-              </div>
-            </div>
-
-            {user?.has_pending_premium_request || upgradeSuccess ? (
-              <span className="px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold self-start sm:self-auto flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                Upgrade Pending Admin Review
-              </span>
-            ) : (
-              <button
-                onClick={handleRequestUpgrade}
-                disabled={upgradeLoading}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 transition self-start sm:self-auto flex items-center gap-2"
-              >
-                <Crown className="w-4 h-4" />
-                {upgradeLoading ? 'Submitting...' : 'Request Premium Upgrade ⭐'}
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Premium Banner */}
         {user?.role === 'premium' && (
           <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-indigo-950/50 border border-amber-500/30 flex items-center justify-between gap-4">
@@ -276,11 +228,11 @@ const Dashboard = () => {
             </div>
 
             <button
-              onClick={handleRequestUpgrade}
-              disabled={upgradeLoading || upgradeSuccess || user?.has_pending_premium_request}
-              className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs transition self-start sm:self-auto"
+              onClick={() => navigate('/profile')}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs transition self-start sm:self-auto flex items-center gap-2"
             >
-              {user?.has_pending_premium_request || upgradeSuccess ? 'Upgrade Pending...' : 'Unlock AI Forecasting ⭐'}
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              <span>Manage Account in Profile →</span>
             </button>
           </div>
         )}
