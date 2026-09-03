@@ -2,28 +2,26 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import api from '../services/api';
 import IncomeModal from '../components/Income/IncomeModal';
-import Toast from '../components/Common/Toast';
-import { 
-  Wallet, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  ArrowUpRight,
-  Sparkles
-} from 'lucide-react';
-
+import { Wallet, Plus, Trash2, Edit3, ArrowUpRight, Sparkles, AlertTriangle, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const CATEGORIES = ['All', 'Pocket Money', 'Scholarship', 'Freelance', 'Part-Time Job', 'Other'];
 
 const IncomePage = () => {
-  const toast = useToast();
+  const { fetchNotifications } = useAuth();
+  const { showToast } = useToast();
+
   const [incomes, setIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [monthFilter, setMonthFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState(null);
+
+  // Delete Confirmation Modal State
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchIncomes = async () => {
     setLoading(true);
@@ -48,14 +46,19 @@ const IncomePage = () => {
     fetchIncomes();
   }, [selectedCategory, monthFilter]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this income entry?')) return;
+  const confirmDeleteIncome = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      await api.delete(`/incomes/${id}`);
-      toast.delete('Income record deleted successfully!');
+      await api.delete(`/incomes/${deleteTargetId}`);
+      showToast('Income entry removed successfully', 'success');
       fetchIncomes();
+      fetchNotifications();
     } catch (err) {
-      toast.error('Failed to delete income');
+      showToast(err.response?.data?.detail || 'Failed to delete income', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -188,7 +191,7 @@ const IncomePage = () => {
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(inc.id)}
+                            onClick={() => setDeleteTargetId(inc.id)}
                             className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
                             title="Delete"
                           >
@@ -205,12 +208,6 @@ const IncomePage = () => {
         </div>
       </div>
 
-      <Toast
-        message={toastMessage}
-        type="success"
-        onClose={() => setToastMessage('')}
-      />
-
       {isModalOpen && (
         <IncomeModal
           isOpen={isModalOpen}
@@ -220,10 +217,46 @@ const IncomePage = () => {
           }}
           onSuccess={(msg) => {
             fetchIncomes();
-            if (msg) setToastMessage(msg);
+            fetchNotifications();
+            if (msg) showToast(msg, 'success');
           }}
           initialData={editingIncome}
         />
+      )}
+
+      {/* In-Site Dark Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-[#0E1726] p-6 rounded-3xl border border-rose-500/40 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+                <span>Delete Income Entry</span>
+              </div>
+              <button onClick={() => setDeleteTargetId(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to delete this income entry? This action cannot be undone and will adjust your total balance.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={confirmDeleteIncome}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete Entry'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

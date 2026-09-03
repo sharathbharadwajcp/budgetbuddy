@@ -8,8 +8,10 @@ import {
   FileType, 
   Calendar
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 const ReportsPage = () => {
+  const { showToast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [downloading, setDownloading] = useState('');
 
@@ -28,8 +30,9 @@ const ReportsPage = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      showToast(`${type.toUpperCase()} report downloaded successfully`, 'success');
     } catch (err) {
-      alert(`Failed to export ${type.toUpperCase()} report.`);
+      showToast(`Failed to export ${type.toUpperCase()} report.`, 'error');
     } finally {
       setDownloading('');
     }

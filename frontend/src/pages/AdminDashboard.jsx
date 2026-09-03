@@ -16,8 +16,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const AdminDashboard = () => {
-  const toast = useToast();
   const { user: currentUser } = useAuth();
+  const { showToast } = useToast();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -28,7 +28,7 @@ const AdminDashboard = () => {
     try {
       const [statsRes, usersRes, logsRes] = await Promise.all([
         api.get('/admin/stats'),
-        api.get('/admin/users'),
+        api.get('/users/'),
         api.get('/admin/logs')
       ]);
 
@@ -49,20 +49,20 @@ const AdminDashboard = () => {
   const handleRoleChange = async (userId, newRole) => {
     try {
       await api.put(`/admin/users/${userId}/role?role=${newRole}`);
-      toast.success(`User role updated to ${newRole.toUpperCase()}!`);
+      showToast(`User role updated to ${newRole}`, 'success');
       fetchAdminData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to change user role');
+      showToast(err.response?.data?.detail || 'Failed to change user role', 'error');
     }
   };
 
   const handleStatusToggle = async (userId, currentStatus) => {
     try {
       await api.put(`/admin/users/${userId}/status?is_active=${!currentStatus}`);
-      toast.info(`User status toggled to ${!currentStatus ? 'Active' : 'Inactive'}`);
+      showToast(`User account status ${!currentStatus ? 'activated' : 'deactivated'}`, 'success');
       fetchAdminData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to toggle user status');
+      showToast(err.response?.data?.detail || 'Failed to toggle user status', 'error');
     }
   };
 

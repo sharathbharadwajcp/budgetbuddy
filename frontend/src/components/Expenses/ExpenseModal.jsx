@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import CategoryBadge from '../Common/CategoryBadge';
 import { X, Receipt, Building2 } from 'lucide-react';
-import { useToast } from '../../context/ToastContext';
 
 const CATEGORIES = ['Food', 'Travel', 'Shopping', 'Education', 'Entertainment', 'Miscellaneous'];
 const PAYMENT_METHODS = ['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Bank Transfer'];
 
 const ExpenseModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
-  const toast = useToast();
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
@@ -70,18 +68,14 @@ const ExpenseModal = ({ isOpen, onClose, onSuccess, initialData = null }) => {
 
       if (initialData?.id) {
         await api.put(`/expenses/${initialData.id}`, payload);
-        toast.success(`Expense '${payload.title}' updated successfully!`);
-        if (onSuccess) onSuccess();
+        onSuccess(`Expense '${payload.title}' updated successfully!`);
       } else {
         await api.post('/expenses/', payload);
-        toast.success(`Expense '${payload.title}' of $${payload.amount.toFixed(2)} added!`);
-        if (onSuccess) onSuccess();
+        onSuccess(`Expense '${payload.title}' of $${payload.amount.toFixed(2)} added successfully!`);
       }
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to save expense';
-      setError(msg);
-      toast.error(msg);
+      setError(err.response?.data?.detail || 'Failed to save expense');
     } finally {
       setLoading(false);
     }

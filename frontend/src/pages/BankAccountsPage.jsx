@@ -12,15 +12,24 @@ import {
   ShieldCheck, 
   X,
   Sparkles,
-  DollarSign
+  DollarSign,
+  AlertTriangle
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const BankAccountsPage = () => {
+  const { fetchNotifications } = useAuth();
+  const { showToast } = useToast();
+
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   const [formData, setFormData] = useState({
     account_name: '',
     bank_name: '',
@@ -68,6 +77,7 @@ const BankAccountsPage = () => {
         account_limit: parseFloat(formData.account_limit || 0),
         account_number_last4: formData.account_number_last4 || '1234'
       });
+      showToast('Bank account linked successfully', 'success');
       setShowModal(false);
       setFormData({
         account_name: '',
@@ -81,20 +91,27 @@ const BankAccountsPage = () => {
         color_gradient: 'from-blue-600 to-indigo-800'
       });
       fetchAccounts();
+      fetchNotifications();
     } catch (err) {
-      alert('Failed to link bank account');
+      showToast(err.response?.data?.detail || 'Failed to link bank account', 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteAccount = async (id) => {
-    if (!window.confirm('Are you sure you want to unlink this bank account?')) return;
+  const confirmDeleteAccount = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      await api.delete(`/banks/${id}`);
+      await api.delete(`/banks/${deleteTargetId}`);
+      showToast('Bank account unlinked successfully', 'success');
       fetchAccounts();
+      fetchNotifications();
     } catch (err) {
-      alert('Failed to unlink account');
+      showToast(err.response?.data?.detail || 'Failed to unlink account', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -214,7 +231,7 @@ const BankAccountsPage = () => {
                       </div>
 
                       <button
-                        onClick={() => handleDeleteAccount(acc.id)}
+                        onClick={() => setDeleteTargetId(acc.id)}
                         className="p-2 rounded-xl bg-black/20 hover:bg-rose-500/30 text-white/80 hover:text-white transition opacity-0 group-hover:opacity-100"
                         title="Unlink Account"
                       >
@@ -243,122 +260,82 @@ const BankAccountsPage = () => {
           )}
         </div>
 
-        {/* Link Bank Account Modal */}
+        {/* Modal for Linking New Account */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div className="w-full max-w-md bg-[#0D1630] p-6 rounded-3xl border border-cyan-900/60 shadow-2xl relative">
-              <button
-                onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-                  <Building2 className="w-6 h-6" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md bg-[#0D1630] p-6 rounded-3xl border border-cyan-900/40 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-cyan-900/40 pb-3">
+                <div className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                  <CreditCard className="w-5 h-5" />
+                  <span>Link New Financial Account</span>
                 </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-white">Link Bank Account / Card</h3>
-                  <p className="text-xs text-cyan-400/80">Add checking, savings, or credit cards</p>
-                </div>
+                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               <form onSubmit={handleCreateAccount} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Bank Name</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Account Display Name</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Chase, HDFC, Bank of America, SBI"
-                    value={formData.bank_name}
-                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-4 py-2.5 text-xs text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Account / Card Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Freedom Checking Account"
+                    placeholder="e.g. Primary Salary Checking"
                     value={formData.account_name}
                     onChange={(e) => setFormData({ ...formData, account_name: e.target.value })}
-                    className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-4 py-2.5 text-xs text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Bank Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Chase, Amex..."
+                      value={formData.bank_name}
+                      onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1">Account Type</label>
                     <select
                       value={formData.account_type}
                       onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
-                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2.5 text-xs text-cyan-100 focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 focus:outline-none focus:border-cyan-500"
                     >
-                      <option value="checking">Checking Account</option>
-                      <option value="savings">Savings Account</option>
+                      <option value="checking">Checking</option>
+                      <option value="savings">Savings</option>
                       <option value="credit_card">Credit Card</option>
-                      <option value="digital_wallet">Digital Wallet / UPI</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">Last 4 Digits</label>
-                    <input
-                      type="text"
-                      maxLength="4"
-                      placeholder="4892"
-                      value={formData.account_number_last4}
-                      onChange={(e) => setFormData({ ...formData, account_number_last4: e.target.value })}
-                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-4 py-2.5 text-xs text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
-                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">Starting Balance ($)</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Current Balance ($)</label>
                     <input
                       type="number"
                       step="0.01"
                       required
-                      placeholder="2500.00"
+                      placeholder="0.00"
                       value={formData.current_balance}
                       onChange={(e) => setFormData({ ...formData, current_balance: e.target.value })}
-                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-4 py-2.5 text-xs text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-cyan-400 mb-1">Credit / Card Limit ($)</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Credit Limit ($)</label>
                     <input
                       type="number"
                       step="0.01"
-                      placeholder="5000.00 (Optional)"
+                      placeholder="Optional"
                       value={formData.account_limit}
                       onChange={(e) => setFormData({ ...formData, account_limit: e.target.value })}
-                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-4 py-2.5 text-xs text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-[#070D1F] border border-cyan-900/40 rounded-xl px-3.5 py-2 text-sm text-cyan-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Virtual Card Color</label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {cardGradients.map((g) => (
-                      <button
-                        key={g.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, color_gradient: g.value })}
-                        className={`h-8 rounded-xl bg-gradient-to-r ${g.value} border flex items-center justify-center transition ${
-                          formData.color_gradient === g.value ? 'border-white ring-2 ring-cyan-500 scale-105' : 'border-transparent opacity-70'
-                        }`}
-                      >
-                        {formData.color_gradient === g.value && <CheckCircle2 className="w-4 h-4 text-white" />}
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -392,6 +369,41 @@ const BankAccountsPage = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* In-Site Dark Delete Confirmation Modal */}
+        {deleteTargetId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm bg-[#0E1726] p-6 rounded-3xl border border-rose-500/40 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+                <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                  <AlertTriangle className="w-5 h-5 animate-pulse" />
+                  <span>Unlink Bank Account</span>
+                </div>
+                <button onClick={() => setDeleteTargetId(null)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Are you sure you want to unlink this bank account? Linked transaction balances will no longer sync with this card.
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setDeleteTargetId(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={confirmDeleteAccount}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50"
+                >
+                  {deleting ? 'Unlinking...' : 'Unlink Account'}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { X, PiggyBank } from 'lucide-react';
-import { useToast } from '../../context/ToastContext';
 
 const CATEGORIES = ['Food', 'Travel', 'Shopping', 'Education', 'Entertainment', 'Miscellaneous'];
 
 const BudgetModal = ({ isOpen, onClose, onSuccess, initialData = null, defaultMonth }) => {
-  const toast = useToast();
   const [formData, setFormData] = useState({
     category: 'Food',
     amount_allocated: '',
@@ -44,17 +42,13 @@ const BudgetModal = ({ isOpen, onClose, onSuccess, initialData = null, defaultMo
 
       if (initialData?.id) {
         await api.put(`/budgets/${initialData.id}`, { amount_allocated: payload.amount_allocated });
-        toast.success(`Budget for ${payload.category} updated to $${payload.amount_allocated.toFixed(2)}!`);
       } else {
         await api.post('/budgets/', payload);
-        toast.success(`Allocated $${payload.amount_allocated.toFixed(2)} budget for ${payload.category}!`);
       }
-      if (onSuccess) onSuccess();
+      onSuccess();
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to set budget allocation';
-      setError(msg);
-      toast.error(msg);
+      setError(err.response?.data?.detail || 'Failed to set budget allocation');
     } finally {
       setLoading(false);
     }

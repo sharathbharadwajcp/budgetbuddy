@@ -2,26 +2,23 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import api from '../services/api';
 import BudgetModal from '../components/Budgets/BudgetModal';
-import { 
-  PiggyBank, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  AlertTriangle, 
-  CheckCircle2, 
-  XCircle,
-  Calendar
-} from 'lucide-react';
-
+import { PiggyBank, Plus, Trash2, Edit3, AlertTriangle, CheckCircle2, XCircle, Calendar, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const BudgetsPage = () => {
-  const toast = useToast();
+  const { fetchNotifications } = useAuth();
+  const { showToast } = useToast();
+
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
+
+  // Delete Confirmation Modal State
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchBudgets = async () => {
     setLoading(true);
@@ -39,14 +36,19 @@ const BudgetsPage = () => {
     fetchBudgets();
   }, [selectedMonth]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Remove this category budget allocation?')) return;
+  const confirmDeleteBudget = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      await api.delete(`/budgets/${id}`);
-      toast.delete('Budget allocation deleted successfully!');
+      await api.delete(`/budgets/${deleteTargetId}`);
+      showToast('Budget allocation removed', 'success');
       fetchBudgets();
+      fetchNotifications();
     } catch (err) {
-      toast.error('Failed to delete budget');
+      showToast(err.response?.data?.detail || 'Failed to delete budget', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -182,7 +184,7 @@ const BudgetsPage = () => {
                     <Edit3 className="w-3.5 h-3.5" /> Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(b.id)}
+                    onClick={() => setDeleteTargetId(b.id)}
                     className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs flex items-center gap-1 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Remove
@@ -201,10 +203,49 @@ const BudgetsPage = () => {
             setIsModalOpen(false);
             setEditingBudget(null);
           }}
-          onSuccess={fetchBudgets}
+          onSuccess={(msg) => {
+            fetchBudgets();
+            fetchNotifications();
+            if (msg) showToast(msg, 'success');
+          }}
           initialData={editingBudget}
           defaultMonth={selectedMonth}
         />
+      )}
+
+      {/* In-Site Dark Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-[#0E1726] p-6 rounded-3xl border border-rose-500/40 shadow-2xl max-w-sm w-full space-y-4">
+            <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+                <span>Remove Budget Allocation</span>
+              </div>
+              <button onClick={() => setDeleteTargetId(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to remove this category budget allocation?
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={confirmDeleteBudget}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleting ? 'Removing...' : 'Remove Budget'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

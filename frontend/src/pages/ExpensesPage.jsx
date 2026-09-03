@@ -2,25 +2,17 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import api from '../services/api';
 import ExpenseModal from '../components/Expenses/ExpenseModal';
-import Toast from '../components/Common/Toast';
+import { Plus, Search, Trash2, Edit3, Receipt, CreditCard, AlertTriangle, X } from 'lucide-react';
 import CategoryBadge from '../components/Common/CategoryBadge';
-import { 
-  Receipt, 
-  Plus, 
-  Search, 
-  Filter, 
-  Trash2, 
-  Edit3, 
-  Calendar,
-  CreditCard
-} from 'lucide-react';
-
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const CATEGORIES = ['All', 'Food', 'Travel', 'Shopping', 'Education', 'Entertainment', 'Miscellaneous'];
 
 const ExpensesPage = () => {
-  const toast = useToast();
+  const { fetchNotifications } = useAuth();
+  const { showToast } = useToast();
+
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -28,6 +20,10 @@ const ExpensesPage = () => {
   const [monthFilter, setMonthFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  
+  // Delete Confirmation Modal State
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchExpenses = async () => {
     setLoading(true);
@@ -53,14 +49,19 @@ const ExpensesPage = () => {
     fetchExpenses();
   }, [selectedCategory, monthFilter, searchQuery]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this expense record?')) return;
+  const confirmDeleteExpense = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      await api.delete(`/expenses/${id}`);
-      toast.delete('Expense record deleted successfully!');
+      await api.delete(`/expenses/${deleteTargetId}`);
+      showToast('Expense removed successfully', 'success');
       fetchExpenses();
+      fetchNotifications();
     } catch (err) {
-      toast.error('Failed to delete expense');
+      showToast(err.response?.data?.detail || 'Failed to delete expense', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -205,7 +206,7 @@ const ExpensesPage = () => {
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(exp.id)}
+                            onClick={() => setDeleteTargetId(exp.id)}
                             className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
                             title="Delete"
                           >
@@ -222,12 +223,6 @@ const ExpensesPage = () => {
         </div>
       </div>
 
-      <Toast
-        message={toastMessage}
-        type="success"
-        onClose={() => setToastMessage('')}
-      />
-
       {isModalOpen && (
         <ExpenseModal
           isOpen={isModalOpen}
@@ -237,10 +232,46 @@ const ExpensesPage = () => {
           }}
           onSuccess={(msg) => {
             fetchExpenses();
-            if (msg) setToastMessage(msg);
+            fetchNotifications();
+            if (msg) showToast(msg, 'success');
           }}
           initialData={editingExpense}
         />
+      )}
+
+      {/* In-Site Dark Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-[#0E1726] p-6 rounded-3xl border border-rose-500/40 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+                <span>Delete Expense Entry</span>
+              </div>
+              <button onClick={() => setDeleteTargetId(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to delete this expense record? This action cannot be undone and will update your net budget.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={confirmDeleteExpense}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete Entry'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

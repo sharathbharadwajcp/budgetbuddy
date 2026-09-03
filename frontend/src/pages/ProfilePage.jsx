@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout/Layout';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { User, Settings, Save, Bell, Shield, Wallet, Trash2, AlertTriangle, X, Star, Sparkles, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useToast } from '../context/ToastContext';
-
 const ProfilePage = () => {
-  const toast = useToast();
   const { user, setUser, logout, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -71,13 +70,9 @@ const ProfilePage = () => {
       const res = await api.post('/users/request-premium');
       setPremiumRequested(true);
       if (user) setUser({ ...user, has_pending_premium_request: true });
-      const msg = res.data?.message || 'Upgrade request submitted to administrator!';
-      setMessage(msg);
-      toast.success(msg);
+      showToast('Upgrade request submitted! In-app & Email notifications sent to admin.', 'success');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to submit premium request.';
-      setMessage(msg);
-      toast.error(msg);
+      showToast(err.response?.data?.detail || 'Failed to submit premium request.', 'error');
     } finally {
       setRequestingPremium(false);
     }
@@ -95,11 +90,9 @@ const ProfilePage = () => {
       }
       const pRes = await api.put('/profiles/me', formData);
       if (pRes.data) setProfile(pRes.data);
-      toast.success('Profile & preferences updated successfully!');
-      setMessage('Profile and preferences updated successfully!');
+      showToast('Profile and preferences updated successfully!', 'success');
     } catch (err) {
-      toast.error('Failed to update profile settings.');
-      setMessage('Failed to update profile settings.');
+      showToast('Failed to update profile settings.', 'error');
     } finally {
       setSaving(false);
     }
@@ -109,11 +102,10 @@ const ProfilePage = () => {
     setDeleting(true);
     try {
       await api.delete('/auth/me');
-      toast.delete('Account deleted permanently.');
       logout();
       navigate('/register');
     } catch (err) {
-      toast.error('Failed to delete account.');
+      showToast(err.response?.data?.detail || 'Failed to delete account. Please try again.', 'error');
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);

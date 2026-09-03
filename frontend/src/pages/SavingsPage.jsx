@@ -3,27 +3,24 @@ import Layout from '../components/Layout/Layout';
 import api from '../services/api';
 import GoalModal from '../components/Savings/GoalModal';
 import DepositModal from '../components/Savings/DepositModal';
-import { 
-  Target, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  PlusCircle, 
-  CheckCircle2, 
-  Sparkles,
-  Award
-} from 'lucide-react';
-
+import { Target, Plus, Trash2, Edit3, PlusCircle, CheckCircle2, Sparkles, Award, AlertTriangle, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const SavingsPage = () => {
-  const toast = useToast();
+  const { fetchNotifications } = useAuth();
+  const { showToast } = useToast();
+
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [activeDepositGoal, setActiveDepositGoal] = useState(null);
+
+  // Delete Confirmation Modal State
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -41,14 +38,19 @@ const SavingsPage = () => {
     fetchGoals();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this savings goal?')) return;
+  const confirmDeleteGoal = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      await api.delete(`/savings/${id}`);
-      toast.delete('Savings goal deleted successfully!');
+      await api.delete(`/savings/${deleteTargetId}`);
+      showToast('Savings goal removed successfully', 'success');
       fetchGoals();
+      fetchNotifications();
     } catch (err) {
-      toast.error('Failed to delete goal');
+      showToast(err.response?.data?.detail || 'Failed to delete goal', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -172,7 +174,7 @@ const SavingsPage = () => {
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(g.id)}
+                      onClick={() => setDeleteTargetId(g.id)}
                       className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
                       title="Delete"
                     >
@@ -193,7 +195,11 @@ const SavingsPage = () => {
             setIsGoalModalOpen(false);
             setEditingGoal(null);
           }}
-          onSuccess={fetchGoals}
+          onSuccess={(msg) => {
+            fetchGoals();
+            fetchNotifications();
+            if (msg) showToast(msg, 'success');
+          }}
           initialData={editingGoal}
         />
       )}
@@ -205,9 +211,48 @@ const SavingsPage = () => {
             setIsDepositModalOpen(false);
             setActiveDepositGoal(null);
           }}
-          onSuccess={fetchGoals}
+          onSuccess={(msg) => {
+            fetchGoals();
+            fetchNotifications();
+            if (msg) showToast(msg, 'success');
+          }}
           goal={activeDepositGoal}
         />
+      )}
+
+      {/* In-Site Dark Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-[#0E1726] p-6 rounded-3xl border border-rose-500/40 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+                <span>Delete Savings Goal</span>
+              </div>
+              <button onClick={() => setDeleteTargetId(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to delete this savings goal? All logged deposits for this goal will be released back into your general savings pool.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={confirmDeleteGoal}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete Goal'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );
