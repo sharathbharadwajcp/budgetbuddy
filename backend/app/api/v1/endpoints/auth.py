@@ -58,7 +58,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
     log_system_action(db=db, user_id=new_user.id, action="User Registered (Pending Verification)", details=f"Role: {new_user.role}")
     db.commit()
-    return new_user
+    user_to_return = db.query(User).filter(User.id == new_user.id).first()
+    return user_to_return
 
 @router.post("/verify-email", response_model=Token)
 def verify_email(req: VerifyEmailRequest, db: Session = Depends(get_db)):

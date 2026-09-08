@@ -32,10 +32,15 @@ frontend/.env
 *.local
 
 # SQLite Database
-test_budgetbuddy.db
+*.db
+backend/*.db
 
 # IDEs & OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Test case Excel files
+*.xlsx
+create_reordered_excel.py

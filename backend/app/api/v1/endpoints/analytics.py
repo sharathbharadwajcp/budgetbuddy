@@ -83,13 +83,15 @@ def get_category_spending(
 @router.get("/trends", response_model=List[MonthlyTrend])
 def get_monthly_trends(
     month: Optional[str] = None, # YYYY-MM
-    months_count: int = 6,
+    months: int = 6,
+    months_count: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    target_months = months_count if months_count is not None else months
     # Enforce role restriction: Students are capped at 6 months maximum
     if current_user.role == "student":
-        months_count = min(months_count, 6)
+        target_months = min(target_months, 6)
 
     target_month_str = month or datetime.utcnow().strftime("%Y-%m")
     try:
@@ -100,7 +102,7 @@ def get_monthly_trends(
 
     months_list = []
     curr_y, curr_m = year, mon
-    for _ in range(months_count):
+    for _ in range(target_months):
         months_list.append(f"{curr_y:04d}-{curr_m:02d}")
         curr_m -= 1
         if curr_m < 1:

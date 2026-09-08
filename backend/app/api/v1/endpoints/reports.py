@@ -12,6 +12,7 @@ from app.services.export_service import generate_csv_export, generate_excel_expo
 router = APIRouter()
 
 @router.get("/csv")
+@router.get("/export/csv")
 def export_expenses_csv(
     month: str = None,
     db: Session = Depends(get_db),
@@ -43,6 +44,7 @@ def export_expenses_csv(
     )
 
 @router.get("/excel")
+@router.get("/export/excel")
 def export_financial_excel(
     month: str = None,
     db: Session = Depends(get_db),
@@ -72,6 +74,7 @@ def export_financial_excel(
     )
 
 @router.get("/pdf")
+@router.get("/export/pdf")
 def export_financial_pdf(
     month: str = None,
     db: Session = Depends(get_db),

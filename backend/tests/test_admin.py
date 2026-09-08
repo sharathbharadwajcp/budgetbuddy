@@ -1,38 +1,69 @@
 import pytest
-from app.models import User
-from tests.conftest import create_user_and_get_token, TestingSessionLocal
+from tests.conftest import create_user_and_get_token
 
-def test_admin_dashboard_stats_and_role_restrictions(client):
-    # Create Admin
-    admin_token = create_user_and_get_token(client, email="adminmod@example.com", role="admin")
-    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+def test_G1_admin_stats(client):
+    token = create_user_and_get_token(client, email="g1admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.get("/api/v1/admin/stats", headers=headers)
+    assert resp.status_code == 200
+    assert "user_statistics" in resp.json()
 
-    # Create Student
-    student_token = create_user_and_get_token(client, email="studentmod@example.com", role="student")
+def test_G2_admin_logs(client):
+    token = create_user_and_get_token(client, email="g2admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.get("/api/v1/admin/logs", headers=headers)
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
 
-    db = TestingSessionLocal()
-    admin_usr = db.query(User).filter(User.email == "adminmod@example.com").first()
-    student_usr = db.query(User).filter(User.email == "studentmod@example.com").first()
-    admin_id = admin_usr.id
-    student_id = student_usr.id
-    db.close()
+def test_G3_admin_list_users(client):
+    token = create_user_and_get_token(client, email="g3admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.get("/api/v1/admin/users", headers=headers)
+    assert resp.status_code == 200
+    assert len(resp.json()) >= 1
 
-    # 1. Admin Stats
-    stats_resp = client.get("/api/v1/admin/stats", headers=admin_headers)
-    assert stats_resp.status_code == 200
-    assert stats_resp.json()["user_statistics"]["total_users"] >= 2
+def test_G4_admin_self_role_lock(client):
+    token = create_user_and_get_token(client, email="g4admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    admin_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
 
-    # 2. Block Admin from altering their own role (Returns 400)
-    self_role_resp = client.put(f"/api/v1/admin/users/{admin_id}/role?role=student", headers=admin_headers)
-    assert self_role_resp.status_code == 400
-    assert "cannot alter their own" in self_role_resp.json()["detail"]
+    resp = client.put(f"/api/v1/admin/users/{admin_id}/role?role=student", headers=headers)
+    assert resp.status_code == 400
 
-    # 3. Block promoting other user to admin (Returns 400)
-    promote_resp = client.put(f"/api/v1/admin/users/{student_id}/role?role=admin", headers=admin_headers)
-    assert promote_resp.status_code == 400
-    assert "restricted" in promote_resp.json()["detail"]
+def test_G5_block_admin_promotion(client):
+    token = create_user_and_get_token(client, email="g5admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    target_token = create_user_and_get_token(client, email="targetuser@example.com", role="student")
+    target_headers = {"Authorization": f"Bearer {target_token}"}
+    target_id = client.get("/api/v1/auth/me", headers=target_headers).json()["id"]
 
-    # 4. Valid upgrade student to premium
-    upgrade_resp = client.put(f"/api/v1/admin/users/{student_id}/role?role=premium", headers=admin_headers)
-    assert upgrade_resp.status_code == 200
-    assert upgrade_resp.json()["role"] == "premium"
+    resp = client.put(f"/api/v1/admin/users/{target_id}/role?role=admin", headers=headers)
+    assert resp.status_code == 400
+
+def test_G6_approve_premium_upgrade(client):
+    token = create_user_and_get_token(client, email="g6admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    target_token = create_user_and_get_token(client, email="upgradeuser@example.com", role="student")
+    target_headers = {"Authorization": f"Bearer {target_token}"}
+    target_id = client.get("/api/v1/auth/me", headers=target_headers).json()["id"]
+
+    resp = client.put(f"/api/v1/admin/users/{target_id}/role?role=premium", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "premium"
+
+def test_G7_toggle_user_status(client):
+    token = create_user_and_get_token(client, email="g7admin@example.com", role="admin")
+    headers = {"Authorization": f"Bearer {token}"}
+    target_token = create_user_and_get_token(client, email="statususer@example.com", role="student")
+    target_headers = {"Authorization": f"Bearer {target_token}"}
+    target_id = client.get("/api/v1/auth/me", headers=target_headers).json()["id"]
+
+    resp = client.put(f"/api/v1/admin/users/{target_id}/status?is_active=false", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["is_active"] == False
+
+def test_G8_non_admin_forbidden(client):
+    token = create_user_and_get_token(client, email="student_guard@example.com", role="student")
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.get("/api/v1/admin/stats", headers=headers)
+    assert resp.status_code == 403

@@ -11,7 +11,7 @@ engine = create_engine(
     pool_pre_ping=True if not is_sqlite else False
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 Base = declarative_base()
 
 def get_db():

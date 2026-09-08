@@ -42,6 +42,14 @@ def get_admin_dashboard_stats(
         }
     }
 
+@router.get("/users", response_model=List[UserOut])
+def get_all_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN.value]))
+):
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return users
+
 @router.get("/logs", response_model=List[SystemLogOut])
 def get_system_logs(
     limit: int = 50,
